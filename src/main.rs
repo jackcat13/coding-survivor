@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{sync::Mutex, vec};
 
 use game_state::EDITOR_STATE;
 use raylib::{color::Color, ffi::KeyboardKey, prelude::RaylibDraw, RaylibHandle, RaylibThread};
@@ -6,7 +6,8 @@ use raylib::{color::Color, ffi::KeyboardKey, prelude::RaylibDraw, RaylibHandle, 
 mod game_state;
 
 const GAME_NAME: &str = "Coding Survivor";
-static CURRENT_SCENE: Mutex<fn(&mut RaylibHandle, &RaylibThread, i32, i32)> = Mutex::new(main_scene);
+type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32);
+static CURRENT_SCENE: Mutex<SceneFnPointer> = Mutex::new(main_scene);
 
 fn main() {
     let (mut rl, thread) = raylib::init()
@@ -36,10 +37,19 @@ fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: 
     if let Some(key) = key_pressed {
         if key == KeyboardKey::KEY_BACKSPACE {
             editor_state.buffer.pop();
+        } else if key == KeyboardKey::KEY_ENTER {
+            let command: String = editor_state.buffer.iter().collect();
+            editor_state.buffer = vec![];
+            editor_state.commands.push(command.clone());
         }
     }
     let input_line: String = editor_state.buffer.iter().collect();
     let input_line = "> ".to_owned() + &input_line;
     d.draw_text(&input_line, 20, 10, 20, Color::WHITE);
+    let mut y_history_position = 40;
+    for history_text in editor_state.commands.iter().rev() {
+        d.draw_text(history_text, 20, y_history_position, 20, Color::WHITE);
+        y_history_position += 30;
+    }
 }
 
