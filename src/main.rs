@@ -7,6 +7,7 @@ mod game_state;
 mod scenes;
 
 const GAME_NAME: &str = "Coding Survivor";
+const TARGET_FPS: u32 = 60;
 type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32);
 static CURRENT_SCENE: Mutex<SceneFnPointer> = Mutex::new(main_scene);
 
@@ -16,6 +17,7 @@ fn main() {
         .title(GAME_NAME)
         .build();
 
+    rl.set_target_fps(TARGET_FPS);
 
     while !rl.window_should_close() {
         let current_scene = CURRENT_SCENE.lock().expect("Failed to get current scene");
