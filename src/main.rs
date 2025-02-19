@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+use game_state::init_map;
 use raylib::{RaylibHandle, RaylibThread};
 use scenes::main_scene::main_scene;
 
@@ -8,10 +9,16 @@ mod scenes;
 
 const GAME_NAME: &str = "Coding Survivor";
 const TARGET_FPS: u32 = 60;
+const GAME_WIDTH: u32 = 1000;
+const GAME_HEIGHT: u32 = 1000;
+const TILE_SIZE: u8 = 32;
+
 type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32);
 static CURRENT_SCENE: Mutex<SceneFnPointer> = Mutex::new(main_scene);
 
 fn main() {
+    init_map(GAME_WIDTH, GAME_HEIGHT);
+
     let (mut rl, thread) = raylib::init()
         .size(0, 0)
         .title(GAME_NAME)
