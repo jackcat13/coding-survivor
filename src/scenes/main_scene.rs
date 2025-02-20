@@ -10,7 +10,7 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
     
     d.clear_background(Color::GRAY);
 
-    //Editor Panel
+    //Editor rendering
     d.draw_rectangle(0, 0, x_game_anchor, height, Color::BLACK);
     let mut editor_state = EDITOR_STATE.lock().expect("Failed to get editor state");
     if let Some(input) = char_pressed {
@@ -34,12 +34,13 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
         y_history_position += 30;
     }
 
-    //Game Panel
+    //Map rendering
     let map = MAP_STATE.lock().expect("Failed to get map state");
     let (mut x, mut y) = (x_game_anchor, 0);
     for line in map.tiles.iter() {
         for tile in line.iter() {
             let color = match tile {
+                crate::game_state::Tile::Player => Color::GREEN,
                 crate::game_state::Tile::Ground => Color::LIGHTGRAY,
                 crate::game_state::Tile::Wall => Color::GRAY,
             };
