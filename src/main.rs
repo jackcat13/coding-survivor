@@ -1,9 +1,11 @@
 use std::sync::Mutex;
 
+use editor::editor::start_keyboard_thread;
 use game_state::init_map;
 use raylib::{RaylibHandle, RaylibThread};
 use scenes::main_scene::main_scene;
 
+mod editor;
 mod game_state;
 mod scenes;
 
@@ -25,6 +27,8 @@ fn main() {
         .build();
 
     rl.set_target_fps(TARGET_FPS);
+
+    start_keyboard_thread();
 
     while !rl.window_should_close() {
         let current_scene = CURRENT_SCENE.lock().expect("Failed to get current scene");
