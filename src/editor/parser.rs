@@ -1,10 +1,10 @@
-use std::str::Chars;
+use std::{any::Any, str::Chars};
 
 #[derive(Debug)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Option<String>,
+    pub literal: Option<Box<dyn Any>>,
     pub line: u32,
 }
 
@@ -25,33 +25,41 @@ pub enum TokenType{
 }
 
 pub enum ParserError{
-    TokenScanError, StringTokenScanError,
+    TokenScanError, StringTokenScanError, NumberTokenScanError,
 }
 
 pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
+    let line = 0;
     let mut tokens = vec![];
-
     let mut characters = prompt.chars();
+
     while let Some(character) = characters.next() {
+        if character.is_ascii_digit() {
+            match resolve_number(character, &mut characters) {
+                Ok(value) => add_token_with_literal(TokenType::NUMBER, character, 0, Box::new(value), &mut tokens),
+                Err(err) => return Err(err),
+            }
+            continue;
+        }
         match character {
-            '(' => add_token(TokenType::LEFT_PAREN, character, 0, &mut tokens),
-            ')' => add_token(TokenType::RIGHT_PAREN, character, 0, &mut tokens),
-            '{' => add_token(TokenType::LEFT_BRACE, character, 0, &mut tokens),
-            '}' => add_token(TokenType::RIGHT_BRACE, character, 0, &mut tokens),
-            ',' => add_token(TokenType::COMMA, character, 0, &mut tokens),
-            '.' => add_token(TokenType::DOT, character, 0, &mut tokens),
-            '-' => add_token(TokenType::MINUS, character, 0, &mut tokens),
-            '+' => add_token(TokenType::PLUS, character, 0, &mut tokens),
-            ';' => add_token(TokenType::SEMICOLON, character, 0, &mut tokens),
-            '*' => add_token(TokenType::STAR, character, 0, &mut tokens),
-            '/' => add_token(TokenType::SLASH, character, 0, &mut tokens),
-            '!' => add_token(resolve_two_chars_type(TokenType::BANG, characters.next()), character, 0, &mut tokens),
-            '=' => add_token(resolve_two_chars_type(TokenType::EQUAL, characters.next()), character, 0, &mut tokens),
-            '<' => add_token(resolve_two_chars_type(TokenType::LESS, characters.next()), character, 0, &mut tokens),
-            '>' => add_token(resolve_two_chars_type(TokenType::GREATER, characters.next()), character, 0, &mut tokens),
+            '(' => add_token(TokenType::LEFT_PAREN, character, line, &mut tokens),
+            ')' => add_token(TokenType::RIGHT_PAREN, character, line, &mut tokens),
+            '{' => add_token(TokenType::LEFT_BRACE, character, line, &mut tokens),
+            '}' => add_token(TokenType::RIGHT_BRACE, character, line, &mut tokens),
+            ',' => add_token(TokenType::COMMA, character, line, &mut tokens),
+            '.' => add_token(TokenType::DOT, character, line, &mut tokens),
+            '-' => add_token(TokenType::MINUS, character, line, &mut tokens),
+            '+' => add_token(TokenType::PLUS, character, line, &mut tokens),
+            ';' => add_token(TokenType::SEMICOLON, character, line, &mut tokens),
+            '*' => add_token(TokenType::STAR, character, line, &mut tokens),
+            '/' => add_token(TokenType::SLASH, character, line, &mut tokens),
+            '!' => add_token(resolve_two_chars_type(TokenType::BANG, characters.next()), character, line, &mut tokens),
+            '=' => add_token(resolve_two_chars_type(TokenType::EQUAL, characters.next()), character, line, &mut tokens),
+            '<' => add_token(resolve_two_chars_type(TokenType::LESS, characters.next()), character, line, &mut tokens),
+            '>' => add_token(resolve_two_chars_type(TokenType::GREATER, characters.next()), character, line, &mut tokens),
             '"' => {
-                match resolve_string(&mut characters) {
-                    Ok(value) => add_token_with_literal(TokenType::STRING, character, 0, value, &mut tokens),
+                match resolve_string(character, &mut characters) {
+                    Ok(value) => add_token_with_literal(TokenType::STRING, character, line, Box::new(value), &mut tokens),
                     Err(err) => return Err(err),
                 }
             },
@@ -60,13 +68,28 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
         }
     }
 
-    tokens.push(Token{ token_type: TokenType::EOF, lexeme: "".to_string(), literal: None, line: 0 });
+    tokens.push(Token{ token_type: TokenType::EOF, lexeme: "".to_string(), literal: None, line });
 
     Ok(tokens)
 }
 
-fn resolve_string(characters: &mut Chars) -> Result<String, ParserError> {
+fn resolve_number(first_value: char, characters: &mut Chars) -> Result<f64, ParserError> {
     let mut result = String::new();
+    result.push(first_value);
+    for character in characters.clone().peekable() {
+        if character.is_ascii_digit() || character == '.' {
+            result.push(character);
+            characters.next();
+        } else {
+            break;
+        }
+    }
+    Ok(result.parse::<f64>().expect("Error while parsing token from String to f64"))
+}
+
+fn resolve_string(first_value: char, characters: &mut Chars) -> Result<String, ParserError> {
+    let mut result = String::new();
+    result.push(first_value);
     for character in characters.by_ref() {
         if character != '"' {
             result.push(character);
@@ -99,7 +122,7 @@ fn add_token(token_type: TokenType, character: char, line: u32, tokens: &mut Vec
     tokens.push(Token { token_type, lexeme: character.to_string(), literal: None, line });
 }
 
-fn add_token_with_literal(token_type: TokenType, character: char, line: u32, literal: String, tokens: &mut Vec<Token>) {
+fn add_token_with_literal(token_type: TokenType, character: char, line: u32, literal: Box<dyn Any>, tokens: &mut Vec<Token>) {
     tokens.push(Token { token_type, lexeme: character.to_string(), literal: Some(literal), line });
 }
 
