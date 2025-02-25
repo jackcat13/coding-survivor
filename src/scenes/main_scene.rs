@@ -6,7 +6,7 @@ use raylib::{
 };
 
 use crate::{
-    editor::editor::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED},
+    editor::{editor::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, parser::get_prompt_tokens},
     game_state::{EDITOR_STATE, MAP_STATE},
     TILE_SIZE,
 };
@@ -56,9 +56,14 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
         if key == BACKSPACE {
             editor_state.buffer.pop();
         } else if key == CARRIAGE_RETURN {
-            let command: String = editor_state.buffer.iter().collect();
+            let prompt: String = editor_state.buffer.iter().collect();
             editor_state.buffer = vec![];
-            editor_state.commands.push(command.clone());
+            let tokens = get_prompt_tokens(prompt.clone());
+            println!("Tokens for the command :");
+            tokens.iter().for_each(|token| {
+                println!("{:?}", token);
+            });
+            editor_state.commands.push(prompt.clone());
         } else {
             editor_state.buffer.push(key);
         }

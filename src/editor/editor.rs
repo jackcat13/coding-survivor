@@ -14,7 +14,6 @@ pub fn start_keyboard_thread() {
         loop {
             unsafe { 
                 if let Some(key) = get_key_pressed() {
-    println!("{}", key);
                     KEYS_PRESSED.push_front(key);
                 }
             };
