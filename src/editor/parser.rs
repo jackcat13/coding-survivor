@@ -24,8 +24,9 @@ pub enum TokenType{
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE, EOF,
 }
 
+#[derive(Debug)]
 pub enum ParserError{
-    TokenScanError, StringTokenScanError, NumberTokenScanError,
+    TokenScanError, StringTokenScanError,
 }
 
 pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {

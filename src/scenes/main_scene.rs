@@ -64,6 +64,12 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
                 println!("{:?}", token);
             });
             editor_state.commands.push(prompt.clone());
+            if let Err(error) = tokens {
+                match error {
+                    crate::editor::parser::ParserError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
+                    crate::editor::parser::ParserError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
+                }
+            }
         } else {
             editor_state.buffer.push(key);
         }
@@ -74,8 +80,18 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
     d.draw_text(&input_line, 20, 10, 20, Color::WHITE);
     let mut y_history_position = 40;
     for history_text in editor_state.commands.iter().rev() {
-        d.draw_text(history_text, 20, y_history_position, 20, Color::WHITE);
+        let (text, color) = resolve_history_text_format(history_text.to_string());
+        d.draw_text(text.as_str(), 20, y_history_position, 20, color);
         y_history_position += 30;
     }
 }
+
+fn resolve_history_text_format(history_text: String) -> (String, Color) {
+    if history_text.starts_with("ERR-") {
+        let text = history_text.replace("ERR-", "");
+        return (text, Color::RED);
+    }
+    (history_text, Color::WHITE)
+}
+
 
