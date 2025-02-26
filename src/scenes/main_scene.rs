@@ -16,7 +16,7 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
     d.clear_background(Color::GRAY);
 
     editor_processing();
-    editor_rendering(&mut d, x_game_anchor, height);
+    editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
     map_rendering(&mut d, x_game_anchor);
 }
 
@@ -55,7 +55,7 @@ const EDITOR_TEXT_X: i32 = 20;
 const EDITOR_FONT_SIZE: i32 = 20;
 
 #[allow(static_mut_refs)]
-fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i32) {
+fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i32, width: i32) {
     let editor_state = EDITOR_STATE.lock().expect(GET_EDITOR_STATE_ERROR);
     d.draw_rectangle(0, 0, x_game_anchor, height, Color::BLACK);
     let input_line: String = editor_state.buffer.iter().collect();
@@ -67,8 +67,18 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
             break;
         }
         let (text, color) = resolve_history_text_format(history_text.to_string());
-        d.draw_text(text.as_str(), EDITOR_TEXT_X, y_history_position, EDITOR_FONT_SIZE, color);
-        y_history_position += EDITOR_HISTORY_LINE_HEIGHT;
+        let character_width = EDITOR_FONT_SIZE as f32 / 1.5;
+        let lines = ((text.len() as i32 * character_width as i32) / width) + 1;
+        let mut x_index = 0;
+        let line_max_width = width / character_width as i32;
+        for _ in 0..lines {
+            let mut x_index_end = x_index + line_max_width;
+            if x_index_end > text.len() as i32 { x_index_end = text.len() as i32 }
+            let text_slice = &text[x_index as usize..x_index_end as usize];
+            d.draw_text(text_slice, EDITOR_TEXT_X, y_history_position, EDITOR_FONT_SIZE, color);
+            x_index += line_max_width;
+            y_history_position += EDITOR_HISTORY_LINE_HEIGHT;
+        }
     }
 }
 
