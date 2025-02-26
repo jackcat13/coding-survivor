@@ -15,6 +15,8 @@ const GAME_WIDTH: u32 = 1000;
 const GAME_HEIGHT: u32 = 1000;
 const TILE_SIZE: u8 = 32;
 
+const GET_EDITOR_STATE_ERROR: &str = "Failed to get editor state";
+
 type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32);
 static CURRENT_SCENE: Mutex<SceneFnPointer> = Mutex::new(main_scene);
 
