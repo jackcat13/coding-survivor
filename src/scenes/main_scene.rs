@@ -48,18 +48,27 @@ fn editor_processing() {
     }
 }
 
+const EDITOR_PROMPT_Y: i32 = 10;
+const EDITOR_HISTORY_Y: i32 = 40;
+const EDITOR_HISTORY_LINE_HEIGHT: i32 = 30;
+const EDITOR_TEXT_X: i32 = 20;
+const EDITOR_FONT_SIZE: i32 = 20;
+
 #[allow(static_mut_refs)]
 fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i32) {
     let editor_state = EDITOR_STATE.lock().expect(GET_EDITOR_STATE_ERROR);
     d.draw_rectangle(0, 0, x_game_anchor, height, Color::BLACK);
     let input_line: String = editor_state.buffer.iter().collect();
     let input_line = "> ".to_owned() + &input_line;
-    d.draw_text(&input_line, 20, 10, 20, Color::WHITE);
-    let mut y_history_position = 40;
+    d.draw_text(&input_line, EDITOR_TEXT_X, EDITOR_PROMPT_Y, EDITOR_FONT_SIZE, Color::WHITE);
+    let mut y_history_position = EDITOR_HISTORY_Y;
     for history_text in editor_state.commands.iter().rev() {
+        if y_history_position > height {
+            break;
+        }
         let (text, color) = resolve_history_text_format(history_text.to_string());
-        d.draw_text(text.as_str(), 20, y_history_position, 20, color);
-        y_history_position += 30;
+        d.draw_text(text.as_str(), EDITOR_TEXT_X, y_history_position, EDITOR_FONT_SIZE, color);
+        y_history_position += EDITOR_HISTORY_LINE_HEIGHT;
     }
 }
 
