@@ -6,7 +6,7 @@ use raylib::{
 };
 
 use crate::{
-    editor::{editor::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, parser::get_prompt_tokens}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    editor::{keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, parser::get_prompt_tokens}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
@@ -47,7 +47,6 @@ fn editor_processing() {
         }
     }
 }
-
 
 #[allow(static_mut_refs)]
 fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i32) {

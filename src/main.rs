@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use editor::editor::start_keyboard_thread;
+use editor::keyboard::start_keyboard_thread;
 use game_state::init_map;
 use raylib::{RaylibHandle, RaylibThread};
 use scenes::main_scene::main_scene;
