@@ -6,34 +6,35 @@ pub const BACKSPACE: char = '\x08';
 pub const CARRIAGE_RETURN: char = '\x13';
 pub static mut KEYS_PRESSED: VecDeque<char> = VecDeque::new();
 
-// Accept mutable static references here because concurrent access to push first
-// and pop last is expected
 #[allow(static_mut_refs)]
 pub fn start_keyboard_thread() {
     thread::spawn(move || {
         loop {
-            unsafe { 
-                if let Some(key) = get_key_pressed() {
-                    KEYS_PRESSED.push_front(key);
-                }
-            };
+            process_key_pressed();
         }
     });
 }
 
-/// Gets latest key pressed.
+// Accept mutable static references here because concurrent access to push first
+// and pop last is expected
+#[allow(static_mut_refs)]
 #[inline]
-pub fn get_key_pressed() -> Option<char> {
+pub fn process_key_pressed() {
     let key = unsafe { ffi::GetKeyPressed() };
-    if key == 259 {
-        return Some(BACKSPACE);
-    } else if key == 257 {
-        return Some(CARRIAGE_RETURN);
+    if key == ffi::KeyboardKey::KEY_BACKSPACE as i32 {
+        unsafe { KEYS_PRESSED.push_front(BACKSPACE) };
+    } else if key == ffi::KeyboardKey::KEY_ENTER as i32 {
+        unsafe { KEYS_PRESSED.push_front(CARRIAGE_RETURN) };
+    } else {
+        //Process actual character in another thread to avoid performance loss
+        thread::spawn(move || {
+            let key = unsafe { ffi::GetCharPressed() };
+            if key > 0 {
+                if let Some(character) = char::from_u32(key as u32) {
+                    unsafe { KEYS_PRESSED.push_front(character) };
+                }
+            }
+        });
     }
-    let key = unsafe { ffi::GetCharPressed() };
-    if key > 0 {
-        return char::from_u32(key as u32);
-    }
-    None
 }
  
