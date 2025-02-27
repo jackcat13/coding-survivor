@@ -6,8 +6,15 @@ use lazy_static::lazy_static;
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Option<Box<dyn Any>>,
+    pub literal: Option<Literal>,
     pub line: u32,
+}
+
+#[derive(Clone, Debug)]
+pub enum Literal {
+    Str(String),
+    Num(f64),
+    Identifier(TokenType),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -76,7 +83,7 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
             '>' => add_token(resolve_two_chars_type(TokenType::GREATER, &mut characters), character, line, &mut tokens),
             '"' => {
                 match resolve_string(character, &mut characters) {
-                    Ok(value) => add_token_with_literal(TokenType::STRING, character, line, Box::new(value), &mut tokens),
+                    Ok(value) => add_token_with_literal(TokenType::STRING, character, line, Literal::Str(value), &mut tokens),
                     Err(err) => return Err(err),
                 }
             },
@@ -84,13 +91,13 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
             _ => {
                 if character.is_ascii_digit() {
                     match resolve_number(character, &mut characters) {
-                        Ok(value) => add_token_with_literal(TokenType::NUMBER, character, line, Box::new(value), &mut tokens),
+                        Ok(value) => add_token_with_literal(TokenType::NUMBER, character, line, Literal::Num(value), &mut tokens),
                         Err(err) => return Err(err),
                     }
                     continue;
                 } else if character.is_alphanumeric() {
                     match resolve_identifier(character, &mut characters) {
-                        Ok(value) => add_token_with_literal(TokenType::IDENTIFIER, character, line, Box::new(value), &mut tokens),
+                        Ok(value) => add_token_with_literal(TokenType::IDENTIFIER, character, line, Literal::Identifier(value), &mut tokens),
                         Err(err) => return Err(err),
                     }
                 } else {
@@ -174,7 +181,7 @@ fn add_token(token_type: TokenType, character: char, line: u32, tokens: &mut Vec
     tokens.push(Token { token_type, lexeme: character.to_string(), literal: None, line });
 }
 
-fn add_token_with_literal(token_type: TokenType, character: char, line: u32, literal: Box<dyn Any>, tokens: &mut Vec<Token>) {
+fn add_token_with_literal(token_type: TokenType, character: char, line: u32, literal: Literal, tokens: &mut Vec<Token>) {
     tokens.push(Token { token_type, lexeme: character.to_string(), literal: Some(literal), line });
 }
 

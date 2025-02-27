@@ -6,7 +6,7 @@ use raylib::{
 };
 
 use crate::{
-    editor::{keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, tokenizer::get_prompt_tokens}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    editor::{grammar::{resolve_ast, AstParseError}, keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, tokenizer::{get_prompt_tokens, TokenizerError}}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
@@ -36,12 +36,23 @@ fn editor_processing() {
                 println!("{:?}", token);
             });
             editor_state.commands.push(prompt.clone());
-            if let Err(error) = tokens {
-                match error {
-                    crate::editor::tokenizer::TokenizerError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
-                    crate::editor::tokenizer::TokenizerError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
-                    crate::editor::tokenizer::TokenizerError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()), 
+            match tokens {
+                Ok(tokens) => {
+                    println!("AST Expressions for the command :");
+                    match resolve_ast(tokens) {
+                        Ok(ast) => ast.tree.iter().for_each(|expr| {
+                            println!("{:?}", expr);
+                        }),
+                        Err(error) => match error {
+                            AstParseError::InvalidExpressionForBinaryOperation => editor_state.commands.push("ERR-Impossible to do operation with provided expressions".to_string()),
+                        },
+                    }
                 }
+                Err(error) => match error {
+                    TokenizerError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
+                    TokenizerError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
+                    TokenizerError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()), 
+                },
             }
         } else {
             editor_state.buffer.push(key);
