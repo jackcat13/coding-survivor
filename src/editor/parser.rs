@@ -1,4 +1,6 @@
-use std::{any::Any, str::Chars};
+use std::{any::Any, char, collections::HashMap, str::Chars};
+
+use lazy_static::lazy_static;
 
 #[derive(Debug)]
 pub struct Token {
@@ -8,7 +10,7 @@ pub struct Token {
     pub line: u32,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 pub enum TokenType{
     // Single-character tokens.
@@ -24,9 +26,30 @@ pub enum TokenType{
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE, EOF,
 }
 
+lazy_static! {
+    static ref KEYWORDS: HashMap<&'static str, TokenType> = vec![
+        ("and", TokenType::AND),
+        ("class", TokenType::CLASS),
+        ("else", TokenType::ELSE),
+        ("false", TokenType::FALSE),
+        ("fun", TokenType::FUN),
+        ("for", TokenType::FOR),
+        ("if", TokenType::IF),
+        ("nil", TokenType::NIL),
+        ("or", TokenType::OR),
+        ("print", TokenType::PRINT),
+        ("return", TokenType::RETURN),
+        ("super", TokenType::SUPER),
+        ("this", TokenType::THIS),
+        ("true", TokenType::TRUE),
+        ("var", TokenType::VAR),
+        ("while", TokenType::WHILE),
+    ].into_iter().collect();
+}
+
 #[derive(Debug)]
 pub enum ParserError{
-    TokenScanError, StringTokenScanError,
+    TokenScanError, StringTokenScanError, IdentifierMissmatch,
 }
 
 pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
@@ -35,13 +58,6 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
     let mut characters = prompt.chars();
 
     while let Some(character) = characters.next() {
-        if character.is_ascii_digit() {
-            match resolve_number(character, &mut characters) {
-                Ok(value) => add_token_with_literal(TokenType::NUMBER, character, 0, Box::new(value), &mut tokens),
-                Err(err) => return Err(err),
-            }
-            continue;
-        }
         match character {
             '(' => add_token(TokenType::LEFT_PAREN, character, line, &mut tokens),
             ')' => add_token(TokenType::RIGHT_PAREN, character, line, &mut tokens),
@@ -65,13 +81,43 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
                 }
             },
             ' ' => continue,
-            _ => return Err(ParserError::TokenScanError),
+            _ => {
+                if character.is_ascii_digit() {
+                    match resolve_number(character, &mut characters) {
+                        Ok(value) => add_token_with_literal(TokenType::NUMBER, character, line, Box::new(value), &mut tokens),
+                        Err(err) => return Err(err),
+                    }
+                    continue;
+                } else if character.is_alphanumeric() {
+                    match resolve_identifier(character, &mut characters) {
+                        Ok(value) => add_token_with_literal(TokenType::IDENTIFIER, character, line, Box::new(value), &mut tokens),
+                        Err(err) => return Err(err),
+                    }
+                } else {
+                    return Err(ParserError::TokenScanError);
+                }
+            }
         }
     }
 
     tokens.push(Token{ token_type: TokenType::EOF, lexeme: "".to_string(), literal: None, line });
 
     Ok(tokens)
+}
+
+fn resolve_identifier(first_value: char, characters: &mut Chars<'_>) -> Result<TokenType, ParserError> {
+    let mut identifier = String::new();
+    identifier.push(first_value);
+    for character in characters.clone().peekable() {
+        if character.is_alphanumeric() {
+            identifier.push(character);
+            characters.next();
+        }
+    }
+    match KEYWORDS.get(identifier.as_str()) {
+        Some(token) => Ok(*token),
+        None => Err(ParserError::IdentifierMissmatch),
+    }
 }
 
 fn resolve_number(first_value: char, characters: &mut Chars) -> Result<f64, ParserError> {

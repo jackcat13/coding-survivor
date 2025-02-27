@@ -40,6 +40,7 @@ fn editor_processing() {
                 match error {
                     crate::editor::parser::ParserError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
                     crate::editor::parser::ParserError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
+                    crate::editor::parser::ParserError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()), 
                 }
             }
         } else {
