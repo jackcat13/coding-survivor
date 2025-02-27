@@ -10,7 +10,7 @@ pub struct Token {
     pub line: u32,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 pub enum TokenType{
     // Single-character tokens.
@@ -70,10 +70,10 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
             ';' => add_token(TokenType::SEMICOLON, character, line, &mut tokens),
             '*' => add_token(TokenType::STAR, character, line, &mut tokens),
             '/' => add_token(TokenType::SLASH, character, line, &mut tokens),
-            '!' => add_token(resolve_two_chars_type(TokenType::BANG, characters.next()), character, line, &mut tokens),
-            '=' => add_token(resolve_two_chars_type(TokenType::EQUAL, characters.next()), character, line, &mut tokens),
-            '<' => add_token(resolve_two_chars_type(TokenType::LESS, characters.next()), character, line, &mut tokens),
-            '>' => add_token(resolve_two_chars_type(TokenType::GREATER, characters.next()), character, line, &mut tokens),
+            '!' => add_token(resolve_two_chars_type(TokenType::BANG, &mut characters), character, line, &mut tokens),
+            '=' => add_token(resolve_two_chars_type(TokenType::EQUAL, &mut characters), character, line, &mut tokens),
+            '<' => add_token(resolve_two_chars_type(TokenType::LESS, &mut characters), character, line, &mut tokens),
+            '>' => add_token(resolve_two_chars_type(TokenType::GREATER, &mut characters), character, line, &mut tokens),
             '"' => {
                 match resolve_string(character, &mut characters) {
                     Ok(value) => add_token_with_literal(TokenType::STRING, character, line, Box::new(value), &mut tokens),
@@ -147,22 +147,27 @@ fn resolve_string(first_value: char, characters: &mut Chars) -> Result<String, P
     Err(ParserError::StringTokenScanError)
 }
 
-fn resolve_two_chars_type(token_type: TokenType, next_character: Option<char>) -> TokenType {
-    if let Some(character) = next_character {
-        if character == '=' {
+fn resolve_two_chars_type(token_type: TokenType, characters: &mut Chars) -> TokenType {
+    let mut next_character = characters.clone().peekable();
+    let result = if let Some(character) = next_character.peek() {
+        if *character == '=' {
             match token_type {
                 TokenType::BANG => TokenType::BANG_EQUAL,
                 TokenType::EQUAL => TokenType::EQUAL_EQUAL,
                 TokenType::LESS => TokenType::LESS_EQUAL,
                 TokenType::GREATER => TokenType::GREATER_EQUAL,
-                _ => panic!("Token scanning for 2 characters identifiers can't be called on {:?} token type", token_type),
+                _ => token_type
             }
         } else {
             token_type
         }
     } else {
         token_type
+    };
+    if result != token_type{
+        characters.next();
     }
+    result
 }
 
 fn add_token(token_type: TokenType, character: char, line: u32, tokens: &mut Vec<Token>) {
