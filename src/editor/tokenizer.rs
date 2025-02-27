@@ -48,11 +48,11 @@ lazy_static! {
 }
 
 #[derive(Debug)]
-pub enum ParserError{
+pub enum TokenizerError{
     TokenScanError, StringTokenScanError, IdentifierMissmatch,
 }
 
-pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
+pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
     let line = 0;
     let mut tokens = vec![];
     let mut characters = prompt.chars();
@@ -94,7 +94,7 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
                         Err(err) => return Err(err),
                     }
                 } else {
-                    return Err(ParserError::TokenScanError);
+                    return Err(TokenizerError::TokenScanError);
                 }
             }
         }
@@ -105,7 +105,7 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, ParserError> {
     Ok(tokens)
 }
 
-fn resolve_identifier(first_value: char, characters: &mut Chars<'_>) -> Result<TokenType, ParserError> {
+fn resolve_identifier(first_value: char, characters: &mut Chars<'_>) -> Result<TokenType, TokenizerError> {
     let mut identifier = String::new();
     identifier.push(first_value);
     for character in characters.clone().peekable() {
@@ -116,11 +116,11 @@ fn resolve_identifier(first_value: char, characters: &mut Chars<'_>) -> Result<T
     }
     match KEYWORDS.get(identifier.as_str()) {
         Some(token) => Ok(*token),
-        None => Err(ParserError::IdentifierMissmatch),
+        None => Err(TokenizerError::IdentifierMissmatch),
     }
 }
 
-fn resolve_number(first_value: char, characters: &mut Chars) -> Result<f64, ParserError> {
+fn resolve_number(first_value: char, characters: &mut Chars) -> Result<f64, TokenizerError> {
     let mut result = String::new();
     result.push(first_value);
     for character in characters.clone().peekable() {
@@ -134,7 +134,7 @@ fn resolve_number(first_value: char, characters: &mut Chars) -> Result<f64, Pars
     Ok(result.parse::<f64>().expect("Error while parsing token from String to f64"))
 }
 
-fn resolve_string(first_value: char, characters: &mut Chars) -> Result<String, ParserError> {
+fn resolve_string(first_value: char, characters: &mut Chars) -> Result<String, TokenizerError> {
     let mut result = String::new();
     result.push(first_value);
     for character in characters.by_ref() {
@@ -144,7 +144,7 @@ fn resolve_string(first_value: char, characters: &mut Chars) -> Result<String, P
             return Ok(result);
         }
     }
-    Err(ParserError::StringTokenScanError)
+    Err(TokenizerError::StringTokenScanError)
 }
 
 fn resolve_two_chars_type(token_type: TokenType, characters: &mut Chars) -> TokenType {

@@ -6,7 +6,7 @@ use raylib::{
 };
 
 use crate::{
-    editor::{keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, parser::get_prompt_tokens}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    editor::{keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, tokenizer::get_prompt_tokens}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
@@ -38,9 +38,9 @@ fn editor_processing() {
             editor_state.commands.push(prompt.clone());
             if let Err(error) = tokens {
                 match error {
-                    crate::editor::parser::ParserError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
-                    crate::editor::parser::ParserError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
-                    crate::editor::parser::ParserError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()), 
+                    crate::editor::tokenizer::TokenizerError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
+                    crate::editor::tokenizer::TokenizerError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
+                    crate::editor::tokenizer::TokenizerError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()), 
                 }
             }
         } else {
