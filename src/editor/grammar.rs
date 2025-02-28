@@ -66,6 +66,7 @@ fn token_to_expression(token: &Token) -> Result<Expression, AstParseError> {
         TokenType::IDENTIFIER => match token.literal.clone() {
             Some(Literal::Identifier(TokenType::TRUE)) => Ok(Expression::Primary(Primary::True)),
             Some(Literal::Identifier(TokenType::FALSE)) => Ok(Expression::Primary(Primary::False)),
+            Some(Literal::Identifier(TokenType::NIL)) => Ok(Expression::Primary(Primary::Nil)),
             None => Err(AstParseError::MissingLiteralForIdentifier),
             _ => Err(AstParseError::MissingLiteralForIdentifier),
         },
