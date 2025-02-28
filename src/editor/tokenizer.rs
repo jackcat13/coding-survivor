@@ -119,6 +119,8 @@ fn resolve_identifier(first_value: char, characters: &mut Chars<'_>) -> Result<T
         if character.is_alphanumeric() {
             identifier.push(character);
             characters.next();
+        } else {
+            break;
         }
     }
     match KEYWORDS.get(identifier.as_str()) {

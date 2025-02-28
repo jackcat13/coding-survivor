@@ -46,7 +46,8 @@ fn editor_processing() {
                         Err(error) => match error {
                             AstParseError::TokenInvalidGrammar => editor_state.commands.push("ERR-Invalid grammar for provided command".to_string()),
                             AstParseError::MissingLiteralForNumber => editor_state.commands.push("ERR-Missing value for parsed number".to_string()),
-
+                            AstParseError::MissingLiteralForString => editor_state.commands.push("ERR-Missing value for parsed String".to_string()),
+                            AstParseError::MissingLiteralForIdentifier => editor_state.commands.push("ERR-Missing value for parsed Identifier".to_string()),
                         },
                     }
                 }

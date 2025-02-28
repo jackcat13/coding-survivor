@@ -3,6 +3,8 @@ use super::tokenizer::{Literal, Token, TokenType};
 #[derive(Debug)]
 pub enum AstParseError {
     TokenInvalidGrammar, MissingLiteralForNumber,
+    MissingLiteralForString,
+    MissingLiteralForIdentifier,
 }
 
 #[derive(Debug)]
@@ -51,11 +53,22 @@ fn token_to_expression(token: &Token) -> Result<Expression, AstParseError> {
         // TODO other grammar rules
 
         // LITERALS
-        TokenType::NUMBER => match token.literal {
+        TokenType::NUMBER => match token.literal.clone() {
             Some(Literal::Num(literal)) => Ok(Expression::Primary(Primary::Number(literal))),
             None => Err(AstParseError::MissingLiteralForNumber),
             _ => Err(AstParseError::MissingLiteralForNumber),
-        }
+        },
+        TokenType::STRING => match token.literal.clone() {
+            Some(Literal::Str(literal)) => Ok(Expression::Primary(Primary::Str(literal))),
+            None => Err(AstParseError::MissingLiteralForString),
+            _ => Err(AstParseError::MissingLiteralForString),
+        },
+        TokenType::IDENTIFIER => match token.literal.clone() {
+            Some(Literal::Identifier(TokenType::TRUE)) => Ok(Expression::Primary(Primary::True)),
+            Some(Literal::Identifier(TokenType::FALSE)) => Ok(Expression::Primary(Primary::False)),
+            None => Err(AstParseError::MissingLiteralForIdentifier),
+            _ => Err(AstParseError::MissingLiteralForIdentifier),
+        },
 
         // EOF
         TokenType::EOF => Ok(Expression::Primary(Primary::Eof)),
