@@ -44,7 +44,9 @@ fn editor_processing() {
                             println!("{:?}", expr);
                         }),
                         Err(error) => match error {
-                            AstParseError::InvalidExpressionForBinaryOperation => editor_state.commands.push("ERR-Impossible to do operation with provided expressions".to_string()),
+                            AstParseError::TokenInvalidGrammar => editor_state.commands.push("ERR-Invalid grammar for provided command".to_string()),
+                            AstParseError::MissingLiteralForNumber => editor_state.commands.push("ERR-Missing value for parsed number".to_string()),
+
                         },
                     }
                 }
