@@ -48,6 +48,7 @@ fn editor_processing() {
                             AstParseError::MissingLiteralForNumber => editor_state.commands.push("ERR-Missing value for parsed number".to_string()),
                             AstParseError::MissingLiteralForString => editor_state.commands.push("ERR-Missing value for parsed String".to_string()),
                             AstParseError::MissingLiteralForIdentifier => editor_state.commands.push("ERR-Missing value for parsed Identifier".to_string()),
+                            AstParseError::UnaryWithNoValidNextToken => editor_state.commands.push("ERR-Invalid value passed after ! or -".to_string()),
                         },
                     }
                 }

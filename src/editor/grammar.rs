@@ -1,3 +1,5 @@
+use std::slice::Iter;
+
 use super::tokenizer::{Literal, Token, TokenType};
 
 #[derive(Debug)]
@@ -5,6 +7,7 @@ pub enum AstParseError {
     TokenInvalidGrammar, MissingLiteralForNumber,
     MissingLiteralForString,
     MissingLiteralForIdentifier,
+    UnaryWithNoValidNextToken,
 }
 
 #[derive(Debug)]
@@ -14,7 +17,14 @@ pub struct Ast {
 
 #[derive(Clone, Debug)]
 pub enum Expression {
+    Unary(Unary),
     Primary(Primary),
+}
+
+#[derive(Clone, Debug)]
+pub enum Unary {
+    Bang(Box<Expression>),
+    Minus(Box<Expression>),
 }
 
 #[derive(Clone, Debug)]
@@ -24,7 +34,6 @@ pub enum Primary {
     True,
     False,
     Nil,
-    Child(Box<Expression>),
     Eof,
 }
 
@@ -36,10 +45,9 @@ pub enum Operator {
 pub fn resolve_ast(tokens: Vec<Token>) -> Result<Ast, AstParseError> {
     let mut ast = Ast { tree: vec![] };
 
-    let tokens_iter = tokens.iter();
-    for token in tokens_iter {
-        let expression = token_to_expression(token);
-        match expression {
+    let mut tokens_iter = tokens.iter();
+    while let Some(token) = tokens_iter.next() {
+        match token_to_expression(token, &mut tokens_iter) {
             Ok(expression) => ast.tree.push(expression),
             Err(error) => return Err(error),
         }
@@ -48,9 +56,27 @@ pub fn resolve_ast(tokens: Vec<Token>) -> Result<Ast, AstParseError> {
     Ok(ast)
 }
 
-fn token_to_expression(token: &Token) -> Result<Expression, AstParseError> {
+fn token_to_expression(token: &Token, tokens: &mut Iter<Token>) -> Result<Expression, AstParseError> {
     match token.token_type {
         // TODO other grammar rules
+
+        // UNARY
+        TokenType::BANG => if let Some(next_token) = tokens.next() {
+            match token_to_expression(next_token, tokens) {
+                Ok(expression) => Ok(Expression::Unary(Unary::Bang(Box::new(expression)))),
+                Err(error) => Err(error),
+            }
+        } else {
+            Err(AstParseError::UnaryWithNoValidNextToken)
+        },
+        TokenType::MINUS => if let Some(next_token) = tokens.next() {
+            match token_to_expression(next_token, tokens) {
+                Ok(expression) => Ok(Expression::Unary(Unary::Minus(Box::new(expression)))),
+                Err(error) => Err(error),
+            }
+        } else {
+            Err(AstParseError::UnaryWithNoValidNextToken)
+        },
 
         // LITERALS
         TokenType::NUMBER => match token.literal.clone() {
