@@ -8,6 +8,7 @@ pub enum AstParseError {
     MissingLiteralForString,
     MissingLiteralForIdentifier,
     UnaryWithNoValidNextToken,
+    InvalidFactorExpressions,
 }
 
 #[derive(Debug)]
@@ -17,14 +18,20 @@ pub struct Ast {
 
 #[derive(Clone, Debug)]
 pub enum Expression {
+    Operation(Operation),
+}
+
+#[derive(Clone, Debug)]
+pub enum Operation {
+    Operation(Box<Operation>, Operator, Box<Operation>),
     Unary(Unary),
-    Primary(Primary),
 }
 
 #[derive(Clone, Debug)]
 pub enum Unary {
-    Bang(Box<Expression>),
-    Minus(Box<Expression>),
+    Bang(Box<Unary>),
+    Minus(Box<Unary>),
+    Primary(Primary),
 }
 
 #[derive(Clone, Debug)]
@@ -43,12 +50,19 @@ pub enum Operator {
 }
 
 pub fn resolve_ast(tokens: Vec<Token>) -> Result<Ast, AstParseError> {
+    let mut previous_expression: Option<Expression> = None;
     let mut ast = Ast { tree: vec![] };
 
     let mut tokens_iter = tokens.iter();
     while let Some(token) = tokens_iter.next() {
-        match token_to_expression(token, &mut tokens_iter) {
-            Ok(expression) => ast.tree.push(expression),
+        match token_to_expression(token, &mut tokens_iter, &previous_expression) {
+            Ok(expression) => {
+                if let Expression::Operation(Operation::Operation(_, _, _)) = expression.clone() {
+                    ast.tree.pop();
+                }
+                ast.tree.push(expression.clone());
+                previous_expression = Some(expression);
+            },
             Err(error) => return Err(error),
         }
     }
@@ -56,22 +70,47 @@ pub fn resolve_ast(tokens: Vec<Token>) -> Result<Ast, AstParseError> {
     Ok(ast)
 }
 
-fn token_to_expression(token: &Token, tokens: &mut Iter<Token>) -> Result<Expression, AstParseError> {
+fn token_to_expression(token: &Token, tokens: &mut Iter<Token>, previous_expression: &Option<Expression>) -> Result<Expression, AstParseError> {
+    if let Some(previous_expression) = previous_expression {
+        let mut tokens_peek = tokens.clone().peekable();
+        if let Some(right) = tokens_peek.peek() {
+            if is_token_operator(token) {
+                tokens.next();
+                match token_to_expression(right, tokens, &None){
+                    Ok(right_expression) => {
+                        if let Expression::Operation(factor_left) = previous_expression {
+                            if let Expression::Operation(factor_right) = right_expression {
+                                return Ok(Expression::Operation(Operation::Operation(Box::new(factor_left.clone()), to_operator(token), Box::new(factor_right))));
+                            }
+                        }
+                        return Err(AstParseError::InvalidFactorExpressions);
+                    },
+                    Err(error) => return Err(error),
+                }
+            }
+        }
+    }
+    
+    // Another match to test unary/literals since Minus is also tested in previous checks
     match token.token_type {
-        // TODO other grammar rules
-
         // UNARY
         TokenType::BANG => if let Some(next_token) = tokens.next() {
-            match token_to_expression(next_token, tokens) {
-                Ok(expression) => Ok(Expression::Unary(Unary::Bang(Box::new(expression)))),
+            match token_to_expression(next_token, tokens, &None) {
+                Ok(expression) => match expression {
+                    Expression::Operation(Operation::Unary(unary)) => Ok(Expression::Operation(Operation::Unary(Unary::Bang(Box::new(unary))))),
+                    _ => Err(AstParseError::UnaryWithNoValidNextToken),
+                },
                 Err(error) => Err(error),
             }
         } else {
             Err(AstParseError::UnaryWithNoValidNextToken)
         },
         TokenType::MINUS => if let Some(next_token) = tokens.next() {
-            match token_to_expression(next_token, tokens) {
-                Ok(expression) => Ok(Expression::Unary(Unary::Minus(Box::new(expression)))),
+            match token_to_expression(next_token, tokens, &None) {
+                Ok(expression) => match expression{
+                    Expression::Operation(Operation::Unary(unary)) => Ok(Expression::Operation(Operation::Unary(Unary::Minus(Box::new(unary))))),
+                    _ => Err(AstParseError::UnaryWithNoValidNextToken),
+                }
                 Err(error) => Err(error),
             }
         } else {
@@ -80,25 +119,25 @@ fn token_to_expression(token: &Token, tokens: &mut Iter<Token>) -> Result<Expres
 
         // LITERALS
         TokenType::NUMBER => match token.literal.clone() {
-            Some(Literal::Num(literal)) => Ok(Expression::Primary(Primary::Number(literal))),
+            Some(Literal::Num(literal)) => Ok(Expression::Operation(Operation::Unary(Unary::Primary(Primary::Number(literal))))),
             None => Err(AstParseError::MissingLiteralForNumber),
             _ => Err(AstParseError::MissingLiteralForNumber),
         },
         TokenType::STRING => match token.literal.clone() {
-            Some(Literal::Str(literal)) => Ok(Expression::Primary(Primary::Str(literal))),
+            Some(Literal::Str(literal)) => Ok(Expression::Operation(Operation::Unary(Unary::Primary(Primary::Str(literal))))),
             None => Err(AstParseError::MissingLiteralForString),
             _ => Err(AstParseError::MissingLiteralForString),
         },
         TokenType::IDENTIFIER => match token.literal.clone() {
-            Some(Literal::Identifier(TokenType::TRUE)) => Ok(Expression::Primary(Primary::True)),
-            Some(Literal::Identifier(TokenType::FALSE)) => Ok(Expression::Primary(Primary::False)),
-            Some(Literal::Identifier(TokenType::NIL)) => Ok(Expression::Primary(Primary::Nil)),
+            Some(Literal::Identifier(TokenType::TRUE)) => Ok(Expression::Operation(Operation::Unary(Unary::Primary(Primary::True)))),
+            Some(Literal::Identifier(TokenType::FALSE)) => Ok(Expression::Operation(Operation::Unary(Unary::Primary(Primary::False)))),
+            Some(Literal::Identifier(TokenType::NIL)) => Ok(Expression::Operation(Operation::Unary(Unary::Primary(Primary::Nil)))),
             None => Err(AstParseError::MissingLiteralForIdentifier),
             _ => Err(AstParseError::MissingLiteralForIdentifier),
         },
 
         // EOF
-        TokenType::EOF => Ok(Expression::Primary(Primary::Eof)),
+        TokenType::EOF => Ok(Expression::Operation(Operation::Unary(Unary::Primary(Primary::Eof)))),
 
         _ => Err(AstParseError::TokenInvalidGrammar),
     }
