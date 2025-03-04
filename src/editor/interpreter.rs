@@ -1,11 +1,11 @@
 use super::grammar::{Expression, Operation, Primary, Unary};
 
 pub enum InterpreterResult{
-    InterpreterNum(f64),
-    InterpreterStr(String),
-    InterpreterBool(bool),
-    InterpreterBang(Box<InterpreterResult>),
-    InterpreterNil,
+    Num(f64),
+    Str(String),
+    Bool(bool),
+    Bang(Box<InterpreterResult>),
+    Nil,
 }
 
 #[derive(Debug)]
@@ -46,79 +46,79 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
 }
 
 fn solve_bang_equal(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
-    let true_result = Ok(InterpreterResult::InterpreterBool(true));
+    let true_result = Ok(InterpreterResult::Bool(true));
     match left {
-        InterpreterResult::InterpreterNum(left_num) => match right {
-            InterpreterResult::InterpreterNum(right_num) => Ok(InterpreterResult::InterpreterBool(left_num != right_num)),
-            InterpreterResult::InterpreterStr(_) => true_result,
-            InterpreterResult::InterpreterBool(_) => true_result,
-            InterpreterResult::InterpreterBang(_) => true_result,
-            InterpreterResult::InterpreterNil => true_result,
+        InterpreterResult::Num(left_num) => match right {
+            InterpreterResult::Num(right_num) => Ok(InterpreterResult::Bool(left_num != right_num)),
+            InterpreterResult::Str(_) => true_result,
+            InterpreterResult::Bool(_) => true_result,
+            InterpreterResult::Bang(_) => true_result,
+            InterpreterResult::Nil => true_result,
         },
-        InterpreterResult::InterpreterStr(left_str) => match right {
-            InterpreterResult::InterpreterNum(_) => true_result,
-            InterpreterResult::InterpreterStr(right_str) => Ok(InterpreterResult::InterpreterBool(!left_str.eq(&right_str))),
-            InterpreterResult::InterpreterBool(_) => true_result,
-            InterpreterResult::InterpreterBang(_) => true_result,
-            InterpreterResult::InterpreterNil => true_result,
+        InterpreterResult::Str(left_str) => match right {
+            InterpreterResult::Num(_) => true_result,
+            InterpreterResult::Str(right_str) => Ok(InterpreterResult::Bool(!left_str.eq(&right_str))),
+            InterpreterResult::Bool(_) => true_result,
+            InterpreterResult::Bang(_) => true_result,
+            InterpreterResult::Nil => true_result,
         },
-        InterpreterResult::InterpreterBool(left_bool) => match right {
-            InterpreterResult::InterpreterNum(_) => true_result,
-            InterpreterResult::InterpreterStr(_) => true_result,
-            InterpreterResult::InterpreterBool(right_bool) => Ok(InterpreterResult::InterpreterBool(left_bool != right_bool)),
-            InterpreterResult::InterpreterBang(_) => true_result,
-            InterpreterResult::InterpreterNil => true_result,
+        InterpreterResult::Bool(left_bool) => match right {
+            InterpreterResult::Num(_) => true_result,
+            InterpreterResult::Str(_) => true_result,
+            InterpreterResult::Bool(right_bool) => Ok(InterpreterResult::Bool(left_bool != right_bool)),
+            InterpreterResult::Bang(_) => true_result,
+            InterpreterResult::Nil => true_result,
         },
-        InterpreterResult::InterpreterBang(_) => Err(InterpreterError::UnexpectedLatelyInterpretedBang),
-        InterpreterResult::InterpreterNil => match right {
-            InterpreterResult::InterpreterNum(_) => true_result,
-            InterpreterResult::InterpreterStr(_) => true_result,
-            InterpreterResult::InterpreterBool(_) => true_result,
-            InterpreterResult::InterpreterBang(_) => true_result,
-            InterpreterResult::InterpreterNil => Ok(InterpreterResult::InterpreterBool(false)),
+        InterpreterResult::Bang(_) => Err(InterpreterError::UnexpectedLatelyInterpretedBang),
+        InterpreterResult::Nil => match right {
+            InterpreterResult::Num(_) => true_result,
+            InterpreterResult::Str(_) => true_result,
+            InterpreterResult::Bool(_) => true_result,
+            InterpreterResult::Bang(_) => true_result,
+            InterpreterResult::Nil => Ok(InterpreterResult::Bool(false)),
         }
     }
 }
 
 fn solve_equal_equal(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
-    let false_result = Ok(InterpreterResult::InterpreterBool(false));
+    let false_result = Ok(InterpreterResult::Bool(false));
     match left {
-        InterpreterResult::InterpreterNum(left_num) => match right {
-            InterpreterResult::InterpreterNum(right_num) => Ok(InterpreterResult::InterpreterBool(left_num == right_num)),
-            InterpreterResult::InterpreterStr(_) => false_result,
-            InterpreterResult::InterpreterBool(_) => false_result,
-            InterpreterResult::InterpreterBang(_) => false_result,
-            InterpreterResult::InterpreterNil => false_result,
+        InterpreterResult::Num(left_num) => match right {
+            InterpreterResult::Num(right_num) => Ok(InterpreterResult::Bool(left_num == right_num)),
+            InterpreterResult::Str(_) => false_result,
+            InterpreterResult::Bool(_) => false_result,
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => false_result,
         },
-        InterpreterResult::InterpreterStr(left_str) => match right {
-            InterpreterResult::InterpreterNum(_) => false_result,
-            InterpreterResult::InterpreterStr(right_str) => Ok(InterpreterResult::InterpreterBool(left_str.eq(&right_str))),
-            InterpreterResult::InterpreterBool(_) => false_result,
-            InterpreterResult::InterpreterBang(_) => false_result,
-            InterpreterResult::InterpreterNil => false_result,
+        InterpreterResult::Str(left_str) => match right {
+            InterpreterResult::Num(_) => false_result,
+            InterpreterResult::Str(right_str) => Ok(InterpreterResult::Bool(left_str.eq(&right_str))),
+            InterpreterResult::Bool(_) => false_result,
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => false_result,
         },
-        InterpreterResult::InterpreterBool(left_bool) => match right {
-            InterpreterResult::InterpreterNum(_) => false_result,
-            InterpreterResult::InterpreterStr(_) => false_result,
-            InterpreterResult::InterpreterBool(right_bool) => Ok(InterpreterResult::InterpreterBool(left_bool == right_bool)),
-            InterpreterResult::InterpreterBang(_) => false_result,
-            InterpreterResult::InterpreterNil => false_result,
+        InterpreterResult::Bool(left_bool) => match right {
+            InterpreterResult::Num(_) => false_result,
+            InterpreterResult::Str(_) => false_result,
+            InterpreterResult::Bool(right_bool) => Ok(InterpreterResult::Bool(left_bool == right_bool)),
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => false_result,
         },
-        InterpreterResult::InterpreterBang(_) => Err(InterpreterError::UnexpectedLatelyInterpretedBang),
-        InterpreterResult::InterpreterNil => match right {
-            InterpreterResult::InterpreterNum(_) => false_result,
-            InterpreterResult::InterpreterStr(_) => false_result,
-            InterpreterResult::InterpreterBool(_) => false_result,
-            InterpreterResult::InterpreterBang(_) => false_result,
-            InterpreterResult::InterpreterNil => Ok(InterpreterResult::InterpreterBool(true)),
+        InterpreterResult::Bang(_) => Err(InterpreterError::UnexpectedLatelyInterpretedBang),
+        InterpreterResult::Nil => match right {
+            InterpreterResult::Num(_) => false_result,
+            InterpreterResult::Str(_) => false_result,
+            InterpreterResult::Bool(_) => false_result,
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => Ok(InterpreterResult::Bool(true)),
         },
     }
 }
 
 fn solve_division(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
     match left {
-        InterpreterResult::InterpreterNum(num_left) => match right {
-            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterNum(num_left / num_right)),
+        InterpreterResult::Num(num_left) => match right {
+            InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left / num_right)),
             _ => Err(InterpreterError::InvalidOperationValues),
         },
         _ => Err(InterpreterError::InvalidOperationValues),
@@ -127,8 +127,8 @@ fn solve_division(left: InterpreterResult, right: InterpreterResult) -> Result<I
 
 fn solve_multiplication(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
     match left {
-        InterpreterResult::InterpreterNum(num_left) => match right {
-            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterNum(num_left * num_right)),
+        InterpreterResult::Num(num_left) => match right {
+            InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left * num_right)),
             _ => Err(InterpreterError::InvalidOperationValues),
         },
         _ => Err(InterpreterError::InvalidOperationValues),
@@ -137,8 +137,8 @@ fn solve_multiplication(left: InterpreterResult, right: InterpreterResult) -> Re
 
 fn solve_minus(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
     match left {
-        InterpreterResult::InterpreterNum(num_left) => match right {
-            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterNum(num_left - num_right)),
+        InterpreterResult::Num(num_left) => match right {
+            InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left - num_right)),
             _ => Err(InterpreterError::InvalidOperationValues),
         },
         _ => Err(InterpreterError::InvalidOperationValues),
@@ -147,16 +147,16 @@ fn solve_minus(left: InterpreterResult, right: InterpreterResult) -> Result<Inte
 
 fn solve_add(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
     match left {
-        InterpreterResult::InterpreterNum(num_left) => match right {
-            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterNum(num_left + num_right)),
-            InterpreterResult::InterpreterStr(str_right) => Ok(InterpreterResult::InterpreterStr(num_left.to_string() + &str_right)),
+        InterpreterResult::Num(num_left) => match right {
+            InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left + num_right)),
+            InterpreterResult::Str(str_right) => Ok(InterpreterResult::Str(num_left.to_string() + &str_right)),
             _ => Err(InterpreterError::InvalidOperationValues),
         },
-        InterpreterResult::InterpreterStr(str_left) => match right {
-            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterStr(str_left + &num_right.to_string())),
-            InterpreterResult::InterpreterStr(str_right) => Ok(InterpreterResult::InterpreterStr(str_left + &str_right)),
-            InterpreterResult::InterpreterBool(bool_right) => Ok(InterpreterResult::InterpreterStr(str_left + &bool_right.to_string())),
-            InterpreterResult::InterpreterNil => Ok(InterpreterResult::InterpreterStr(str_left + "nil")),
+        InterpreterResult::Str(str_left) => match right {
+            InterpreterResult::Num(num_right) => Ok(InterpreterResult::Str(str_left + &num_right.to_string())),
+            InterpreterResult::Str(str_right) => Ok(InterpreterResult::Str(str_left + &str_right)),
+            InterpreterResult::Bool(bool_right) => Ok(InterpreterResult::Str(str_left + &bool_right.to_string())),
+            InterpreterResult::Nil => Ok(InterpreterResult::Str(str_left + "nil")),
             _ => Err(InterpreterError::InvalidOperationValues),
         },
         _ => Err(InterpreterError::InvalidOperationValues),
@@ -180,14 +180,14 @@ fn solve_unary(unary: &Unary) -> Result<InterpreterResult, InterpreterError> {
         Unary::Bang(unary_nested) => {
             match solve_unary(unary_nested) {
                 Ok(unary_nested_result) => match unary_nested_result {
-                    InterpreterResult::InterpreterBang(bang_result) => Ok(*bang_result),
-                    InterpreterResult::InterpreterNum(num_result) => Ok(InterpreterResult::InterpreterBang(Box::new(InterpreterResult::InterpreterNum(num_result)))),
-                    InterpreterResult::InterpreterStr(str_result) => Ok(InterpreterResult::InterpreterBang(Box::new(InterpreterResult::InterpreterStr(str_result)))),
-                    InterpreterResult::InterpreterBool(bool_result) => 
+                    InterpreterResult::Bang(bang_result) => Ok(*bang_result),
+                    InterpreterResult::Num(num_result) => Ok(InterpreterResult::Bang(Box::new(InterpreterResult::Num(num_result)))),
+                    InterpreterResult::Str(str_result) => Ok(InterpreterResult::Bang(Box::new(InterpreterResult::Str(str_result)))),
+                    InterpreterResult::Bool(bool_result) => 
                         if bool_result {
-                            Ok(InterpreterResult::InterpreterBool(false))
+                            Ok(InterpreterResult::Bool(false))
                         } else {
-                            Ok(InterpreterResult::InterpreterBool(true))
+                            Ok(InterpreterResult::Bool(true))
                         },
                     _ => Err(InterpreterError::InvalidOperationValues),
                 },
@@ -197,7 +197,7 @@ fn solve_unary(unary: &Unary) -> Result<InterpreterResult, InterpreterError> {
         Unary::Minus(unary_nested) => {
             match solve_unary(unary_nested) {
                 Ok(unary_nested_result) => match unary_nested_result {
-                    InterpreterResult::InterpreterNum(num_result) => Ok(InterpreterResult::InterpreterNum(-num_result)),
+                    InterpreterResult::Num(num_result) => Ok(InterpreterResult::Num(-num_result)),
                     _ => Err(InterpreterError::InvalidOperationValues),
                 },
                 Err(error) => Err(error),
@@ -209,11 +209,11 @@ fn solve_unary(unary: &Unary) -> Result<InterpreterResult, InterpreterError> {
 
 fn solve_primary(primary: &Primary) -> Result<InterpreterResult, InterpreterError> {
     match primary{
-        Primary::Number(number) => Ok(InterpreterResult::InterpreterNum(*number)),
-        Primary::Str(str) => Ok(InterpreterResult::InterpreterStr(str.to_string())),
-        Primary::True => Ok(InterpreterResult::InterpreterBool(true)),
-        Primary::False => Ok(InterpreterResult::InterpreterBool(false)),
-        Primary::Nil => Ok(InterpreterResult::InterpreterNil),
+        Primary::Number(number) => Ok(InterpreterResult::Num(*number)),
+        Primary::Str(str) => Ok(InterpreterResult::Str(str.to_string())),
+        Primary::True => Ok(InterpreterResult::Bool(true)),
+        Primary::False => Ok(InterpreterResult::Bool(false)),
+        Primary::Nil => Ok(InterpreterResult::Nil),
         Primary::Eof => Err(InterpreterError::EofShouldNotBeInterpreted),
     }
 }

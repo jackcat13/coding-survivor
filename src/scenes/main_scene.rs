@@ -44,10 +44,10 @@ fn editor_processing() {
                             println!("{:?}", expression);
                             match interpret_expression(expression) {
                                 Ok(result) => match result {
-                                    InterpreterResult::InterpreterNum(num_result) => editor_state.commands.push(format!("Result : {}", num_result)),
-                                    InterpreterResult::InterpreterStr(str_result) => editor_state.commands.push(format!("Result : {}", str_result)),
-                                    InterpreterResult::InterpreterBool(bool_result) => editor_state.commands.push(format!("Result : {}", bool_result)),
-                                    InterpreterResult::InterpreterNil => editor_state.commands.push("Result : nil".to_string()),
+                                    InterpreterResult::Num(num_result) => editor_state.commands.push(format!("Result : {}", num_result)),
+                                    InterpreterResult::Str(str_result) => editor_state.commands.push(format!("Result : {}", str_result)),
+                                    InterpreterResult::Bool(bool_result) => editor_state.commands.push(format!("Result : {}", bool_result)),
+                                    InterpreterResult::Nil => editor_state.commands.push("Result : nil".to_string()),
                                     _ => println!("Unexpected expression result"),
                                 },
                                 Err(error) => println!("{:?}", error),
