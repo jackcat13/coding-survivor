@@ -6,7 +6,7 @@ use raylib::{
 };
 
 use crate::{
-    editor::{grammar::{resolve_ast, AstParseError}, keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, tokenizer::{get_prompt_tokens, TokenizerError}}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    editor::{grammar::{resolve_ast, AstParseError}, interpreter::{interpret_expression, InterpreterResult}, keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, tokenizer::{get_prompt_tokens, TokenizerError}}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
@@ -40,8 +40,18 @@ fn editor_processing() {
                 Ok(tokens) => {
                     println!("AST Expressions for the command :");
                     match resolve_ast(tokens) {
-                        Ok(ast) => ast.tree.iter().for_each(|expr| {
-                            println!("{:?}", expr);
+                        Ok(ast) => ast.tree.iter().for_each(|expression| {
+                            println!("{:?}", expression);
+                            match interpret_expression(expression) {
+                                Ok(result) => match result {
+                                    InterpreterResult::InterpreterNum(num_result) => editor_state.commands.push(format!("Result : {}", num_result)),
+                                    InterpreterResult::InterpreterStr(str_result) => editor_state.commands.push(format!("Result : {}", str_result)),
+                                    InterpreterResult::InterpreterBool(_) => todo!(),
+                                    InterpreterResult::InterpreterBang(_) => todo!(),
+                                    InterpreterResult::InterpreterNil => todo!(),
+                                },
+                                Err(error) => println!("{:?}", error),
+                            }
                         }),
                         Err(error) => match error {
                             AstParseError::TokenInvalidGrammar => editor_state.commands.push("ERR-Invalid grammar for provided command".to_string()),
