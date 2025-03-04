@@ -34,10 +34,10 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
                 super::grammar::Operator::Divide => solve_division(left, right),
                 super::grammar::Operator::EqualEqual => solve_equal_equal(left, right),
                 super::grammar::Operator::BangEqual => solve_bang_equal(left, right),
-                super::grammar::Operator::Less => solve_less(left, right),
-                super::grammar::Operator::LessOrEqual => todo!(),
-                super::grammar::Operator::Greater => todo!(),
-                super::grammar::Operator::GreaterOrEqual => todo!(),
+                super::grammar::Operator::Less => solve_less(left, right, false),
+                super::grammar::Operator::LessOrEqual => solve_less(left, right, true),
+                super::grammar::Operator::Greater => solve_greater(left, right, false),
+                super::grammar::Operator::GreaterOrEqual => solve_greater(left, right, true),
             },
             Err(error) => Err(error),
         },
@@ -45,11 +45,16 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
     }
 }
 
-fn solve_less(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+fn solve_greater(left: InterpreterResult, right: InterpreterResult, or_equal: bool) -> Result<InterpreterResult, InterpreterError> {
     let false_result = Ok(InterpreterResult::Bool(false));
     match left {
         InterpreterResult::Num(left_num) => match right {
-            InterpreterResult::Num(right_num) => Ok(InterpreterResult::Bool(left_num < right_num)),
+            InterpreterResult::Num(right_num) => 
+                if or_equal {
+                    Ok(InterpreterResult::Bool(left_num >= right_num))
+                } else {
+                    Ok(InterpreterResult::Bool(left_num > right_num))
+                },
             InterpreterResult::Str(_) => false_result,
             InterpreterResult::Bool(_) => false_result,
             InterpreterResult::Bang(_) => false_result,
@@ -57,7 +62,43 @@ fn solve_less(left: InterpreterResult, right: InterpreterResult) -> Result<Inter
         },
         InterpreterResult::Str(left_str) => match right {
             InterpreterResult::Num(_) => false_result,
-            InterpreterResult::Str(right_str) => Ok(InterpreterResult::Bool(left_str.len() < right_str.len())),
+            InterpreterResult::Str(right_str) => 
+                if or_equal {
+                    Ok(InterpreterResult::Bool(left_str.len() >= right_str.len()))
+                } else {
+                    Ok(InterpreterResult::Bool(left_str.len() > right_str.len()))
+                },
+            InterpreterResult::Bool(_) => false_result,
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => false_result,
+        },
+        _ => Err(InterpreterError::InvalidOperationValues),
+    }
+}
+
+fn solve_less(left: InterpreterResult, right: InterpreterResult, or_equal: bool) -> Result<InterpreterResult, InterpreterError> {
+    let false_result = Ok(InterpreterResult::Bool(false));
+    match left {
+        InterpreterResult::Num(left_num) => match right {
+            InterpreterResult::Num(right_num) => 
+                if or_equal {
+                    Ok(InterpreterResult::Bool(left_num <= right_num))
+                } else {
+                    Ok(InterpreterResult::Bool(left_num < right_num))
+                },
+            InterpreterResult::Str(_) => false_result,
+            InterpreterResult::Bool(_) => false_result,
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => false_result,
+        },
+        InterpreterResult::Str(left_str) => match right {
+            InterpreterResult::Num(_) => false_result,
+            InterpreterResult::Str(right_str) => 
+                if or_equal {
+                    Ok(InterpreterResult::Bool(left_str.len() <= right_str.len()))
+                } else {
+                    Ok(InterpreterResult::Bool(left_str.len() < right_str.len()))
+                },
             InterpreterResult::Bool(_) => false_result,
             InterpreterResult::Bang(_) => false_result,
             InterpreterResult::Nil => false_result,
