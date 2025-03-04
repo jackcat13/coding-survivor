@@ -28,7 +28,7 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
         Ok(left) => match right {
             Ok(right) => match operator {
                 super::grammar::Operator::Add => solve_add(left, right),
-                super::grammar::Operator::Minus => todo!(),
+                super::grammar::Operator::Minus => solve_minus(left, right),
                 super::grammar::Operator::Multiply => todo!(),
                 super::grammar::Operator::Divide => todo!(),
                 super::grammar::Operator::EqualEqual => todo!(),
@@ -44,6 +44,16 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
     }
 }
 
+fn solve_minus(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+    match left {
+        InterpreterResult::InterpreterNum(num_left) => match right {
+            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterNum(num_left - num_right)),
+            _ => Err(InterpreterError::InvalidOperationValues),
+        },
+        _ => Err(InterpreterError::InvalidOperationValues),
+    }
+}
+
 fn solve_add(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
     match left {
         InterpreterResult::InterpreterNum(num_left) => match right {
@@ -51,10 +61,14 @@ fn solve_add(left: InterpreterResult, right: InterpreterResult) -> Result<Interp
             InterpreterResult::InterpreterStr(str_right) => Ok(InterpreterResult::InterpreterStr(num_left.to_string() + &str_right)),
             _ => Err(InterpreterError::InvalidOperationValues),
         },
-        InterpreterResult::InterpreterStr(_) => todo!(),
-        InterpreterResult::InterpreterBool(_) => todo!(),
-        InterpreterResult::InterpreterBang(_) => todo!(),
-        InterpreterResult::InterpreterNil => todo!(),
+        InterpreterResult::InterpreterStr(str_left) => match right {
+            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterStr(str_left + &num_right.to_string())),
+            InterpreterResult::InterpreterStr(str_right) => Ok(InterpreterResult::InterpreterStr(str_left + &str_right)),
+            InterpreterResult::InterpreterBool(bool_right) => Ok(InterpreterResult::InterpreterStr(str_left + &bool_right.to_string())),
+            InterpreterResult::InterpreterNil => Ok(InterpreterResult::InterpreterStr(str_left + "nil")),
+            _ => Err(InterpreterError::InvalidOperationValues),
+        },
+        _ => Err(InterpreterError::InvalidOperationValues),
     }
 }
 
@@ -78,8 +92,13 @@ fn solve_unary(unary: &Unary) -> Result<InterpreterResult, InterpreterError> {
                     InterpreterResult::InterpreterBang(bang_result) => Ok(*bang_result),
                     InterpreterResult::InterpreterNum(num_result) => Ok(InterpreterResult::InterpreterBang(Box::new(InterpreterResult::InterpreterNum(num_result)))),
                     InterpreterResult::InterpreterStr(str_result) => Ok(InterpreterResult::InterpreterBang(Box::new(InterpreterResult::InterpreterStr(str_result)))),
-                    InterpreterResult::InterpreterBool(_) => todo!(),
-                    InterpreterResult::InterpreterNil => todo!(),
+                    InterpreterResult::InterpreterBool(bool_result) => 
+                        if bool_result {
+                            Ok(InterpreterResult::InterpreterBool(false))
+                        } else {
+                            Ok(InterpreterResult::InterpreterBool(true))
+                        },
+                    _ => Err(InterpreterError::InvalidOperationValues),
                 },
                 Err(error) => Err(error),
             }
@@ -87,11 +106,8 @@ fn solve_unary(unary: &Unary) -> Result<InterpreterResult, InterpreterError> {
         Unary::Minus(unary_nested) => {
             match solve_unary(unary_nested) {
                 Ok(unary_nested_result) => match unary_nested_result {
-                    InterpreterResult::InterpreterNum(_) => todo!(),
-                    InterpreterResult::InterpreterStr(_) => todo!(),
-                    InterpreterResult::InterpreterBang(_) => todo!(),
-                    InterpreterResult::InterpreterBool(_) => todo!(),
-                    InterpreterResult::InterpreterNil => todo!(),
+                    InterpreterResult::InterpreterNum(num_result) => Ok(InterpreterResult::InterpreterNum(-num_result)),
+                    _ => Err(InterpreterError::InvalidOperationValues),
                 },
                 Err(error) => Err(error),
             }
