@@ -1,4 +1,4 @@
-use super::grammar::{Expression, Operation, Operator, Primary, Unary};
+use super::grammar::{Expression, Operation, Primary, Unary};
 
 pub enum InterpreterResult{
     InterpreterNum(f64),
@@ -30,7 +30,7 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
                 super::grammar::Operator::Add => solve_add(left, right),
                 super::grammar::Operator::Minus => solve_minus(left, right),
                 super::grammar::Operator::Multiply => solve_multiplication(left, right),
-                super::grammar::Operator::Divide => todo!(),
+                super::grammar::Operator::Divide => solve_division(left, right),
                 super::grammar::Operator::EqualEqual => todo!(),
                 super::grammar::Operator::BangEqual => todo!(),
                 super::grammar::Operator::Less => todo!(),
@@ -41,6 +41,16 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
             Err(error) => Err(error),
         },
         Err(error) => Err(error),
+    }
+}
+
+fn solve_division(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+    match left {
+        InterpreterResult::InterpreterNum(num_left) => match right {
+            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterNum(num_left / num_right)),
+            _ => Err(InterpreterError::InvalidOperationValues),
+        },
+        _ => Err(InterpreterError::InvalidOperationValues),
     }
 }
 
