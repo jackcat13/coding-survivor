@@ -33,7 +33,7 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
                 super::grammar::Operator::Multiply => solve_multiplication(left, right),
                 super::grammar::Operator::Divide => solve_division(left, right),
                 super::grammar::Operator::EqualEqual => solve_equal_equal(left, right),
-                super::grammar::Operator::BangEqual => todo!(),
+                super::grammar::Operator::BangEqual => solve_bang_equal(left, right),
                 super::grammar::Operator::Less => todo!(),
                 super::grammar::Operator::LessOrEqual => todo!(),
                 super::grammar::Operator::Greater => todo!(),
@@ -42,6 +42,41 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
             Err(error) => Err(error),
         },
         Err(error) => Err(error),
+    }
+}
+
+fn solve_bang_equal(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+    let true_result = Ok(InterpreterResult::InterpreterBool(true));
+    match left {
+        InterpreterResult::InterpreterNum(left_num) => match right {
+            InterpreterResult::InterpreterNum(right_num) => Ok(InterpreterResult::InterpreterBool(left_num != right_num)),
+            InterpreterResult::InterpreterStr(_) => true_result,
+            InterpreterResult::InterpreterBool(_) => true_result,
+            InterpreterResult::InterpreterBang(_) => true_result,
+            InterpreterResult::InterpreterNil => true_result,
+        },
+        InterpreterResult::InterpreterStr(left_str) => match right {
+            InterpreterResult::InterpreterNum(_) => true_result,
+            InterpreterResult::InterpreterStr(right_str) => Ok(InterpreterResult::InterpreterBool(!left_str.eq(&right_str))),
+            InterpreterResult::InterpreterBool(_) => true_result,
+            InterpreterResult::InterpreterBang(_) => true_result,
+            InterpreterResult::InterpreterNil => true_result,
+        },
+        InterpreterResult::InterpreterBool(left_bool) => match right {
+            InterpreterResult::InterpreterNum(_) => true_result,
+            InterpreterResult::InterpreterStr(_) => true_result,
+            InterpreterResult::InterpreterBool(right_bool) => Ok(InterpreterResult::InterpreterBool(left_bool != right_bool)),
+            InterpreterResult::InterpreterBang(_) => true_result,
+            InterpreterResult::InterpreterNil => true_result,
+        },
+        InterpreterResult::InterpreterBang(_) => Err(InterpreterError::UnexpectedLatelyInterpretedBang),
+        InterpreterResult::InterpreterNil => match right {
+            InterpreterResult::InterpreterNum(_) => true_result,
+            InterpreterResult::InterpreterStr(_) => true_result,
+            InterpreterResult::InterpreterBool(_) => true_result,
+            InterpreterResult::InterpreterBang(_) => true_result,
+            InterpreterResult::InterpreterNil => Ok(InterpreterResult::InterpreterBool(false)),
+        }
     }
 }
 
@@ -70,7 +105,13 @@ fn solve_equal_equal(left: InterpreterResult, right: InterpreterResult) -> Resul
             InterpreterResult::InterpreterNil => false_result,
         },
         InterpreterResult::InterpreterBang(_) => Err(InterpreterError::UnexpectedLatelyInterpretedBang),
-        _ => Err(InterpreterError::InvalidOperationValues),
+        InterpreterResult::InterpreterNil => match right {
+            InterpreterResult::InterpreterNum(_) => false_result,
+            InterpreterResult::InterpreterStr(_) => false_result,
+            InterpreterResult::InterpreterBool(_) => false_result,
+            InterpreterResult::InterpreterBang(_) => false_result,
+            InterpreterResult::InterpreterNil => Ok(InterpreterResult::InterpreterBool(true)),
+        },
     }
 }
 
