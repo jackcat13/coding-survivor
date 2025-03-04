@@ -29,7 +29,7 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
             Ok(right) => match operator {
                 super::grammar::Operator::Add => solve_add(left, right),
                 super::grammar::Operator::Minus => solve_minus(left, right),
-                super::grammar::Operator::Multiply => todo!(),
+                super::grammar::Operator::Multiply => solve_multiplication(left, right),
                 super::grammar::Operator::Divide => todo!(),
                 super::grammar::Operator::EqualEqual => todo!(),
                 super::grammar::Operator::BangEqual => todo!(),
@@ -41,6 +41,16 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
             Err(error) => Err(error),
         },
         Err(error) => Err(error),
+    }
+}
+
+fn solve_multiplication(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+    match left {
+        InterpreterResult::InterpreterNum(num_left) => match right {
+            InterpreterResult::InterpreterNum(num_right) => Ok(InterpreterResult::InterpreterNum(num_left * num_right)),
+            _ => Err(InterpreterError::InvalidOperationValues),
+        },
+        _ => Err(InterpreterError::InvalidOperationValues),
     }
 }
 
