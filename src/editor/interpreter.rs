@@ -34,7 +34,7 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
                 super::grammar::Operator::Divide => solve_division(left, right),
                 super::grammar::Operator::EqualEqual => solve_equal_equal(left, right),
                 super::grammar::Operator::BangEqual => solve_bang_equal(left, right),
-                super::grammar::Operator::Less => todo!(),
+                super::grammar::Operator::Less => solve_less(left, right),
                 super::grammar::Operator::LessOrEqual => todo!(),
                 super::grammar::Operator::Greater => todo!(),
                 super::grammar::Operator::GreaterOrEqual => todo!(),
@@ -42,6 +42,27 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
             Err(error) => Err(error),
         },
         Err(error) => Err(error),
+    }
+}
+
+fn solve_less(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+    let false_result = Ok(InterpreterResult::Bool(false));
+    match left {
+        InterpreterResult::Num(left_num) => match right {
+            InterpreterResult::Num(right_num) => Ok(InterpreterResult::Bool(left_num < right_num)),
+            InterpreterResult::Str(_) => false_result,
+            InterpreterResult::Bool(_) => false_result,
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => false_result,
+        },
+        InterpreterResult::Str(left_str) => match right {
+            InterpreterResult::Num(_) => false_result,
+            InterpreterResult::Str(right_str) => Ok(InterpreterResult::Bool(left_str.len() < right_str.len())),
+            InterpreterResult::Bool(_) => false_result,
+            InterpreterResult::Bang(_) => false_result,
+            InterpreterResult::Nil => false_result,
+        },
+        _ => Err(InterpreterError::InvalidOperationValues),
     }
 }
 
