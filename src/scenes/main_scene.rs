@@ -46,9 +46,9 @@ fn editor_processing() {
                                 Ok(result) => match result {
                                     InterpreterResult::InterpreterNum(num_result) => editor_state.commands.push(format!("Result : {}", num_result)),
                                     InterpreterResult::InterpreterStr(str_result) => editor_state.commands.push(format!("Result : {}", str_result)),
-                                    InterpreterResult::InterpreterBool(_) => todo!(),
-                                    InterpreterResult::InterpreterBang(_) => todo!(),
-                                    InterpreterResult::InterpreterNil => todo!(),
+                                    InterpreterResult::InterpreterBool(bool_result) => editor_state.commands.push(format!("Result : {}", bool_result)),
+                                    InterpreterResult::InterpreterNil => editor_state.commands.push("Result : nil".to_string()),
+                                    _ => println!("Unexpected expression result"),
                                 },
                                 Err(error) => println!("{:?}", error),
                             }
