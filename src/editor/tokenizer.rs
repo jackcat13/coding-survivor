@@ -15,6 +15,7 @@ pub enum Literal {
     Str(String),
     Num(f64),
     Identifier(TokenType),
+    Label(String),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -31,6 +32,9 @@ pub enum TokenType{
 
     // Keywords.
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE, EOF,
+
+    // REFENCES
+    LABEL,
 }
 
 lazy_static! {
@@ -56,7 +60,11 @@ lazy_static! {
 
 #[derive(Debug)]
 pub enum TokenizerError{
-    TokenScanError, StringTokenScanError, IdentifierMissmatch,
+    TokenScanError,
+    StringTokenScanError,
+    IdentifierMissmatch,
+    InvalidFunctionSyntax,
+    NoIdentifierNorFunctionError,
 }
 
 pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
@@ -98,7 +106,10 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
                 } else if character.is_alphanumeric() {
                     match resolve_identifier(character, &mut characters) {
                         Ok(value) => add_token_with_literal(TokenType::IDENTIFIER, character, line, Literal::Identifier(value), &mut tokens),
-                        Err(err) => return Err(err),
+                        Err(_) => match resolve_label(character, &mut characters) {
+                            Ok(label) => tokens.push(Token { token_type: TokenType::LABEL, lexeme: "label".to_string(), literal: Some(label), line }),
+                            Err(_) => return Err(TokenizerError::NoIdentifierNorFunctionError),
+                        },
                     }
                 } else {
                     return Err(TokenizerError::TokenScanError);
@@ -112,19 +123,44 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
     Ok(tokens)
 }
 
+fn resolve_label(first_character: char, characters: &mut Chars<'_>) -> Result<Literal, TokenizerError> {
+    let mut label_name = String::new();
+    let mut next_number = 0;
+    let mut characters_peek = characters.clone().peekable();
+    label_name.push(first_character);
+    for character in characters_peek.by_ref() {
+        if character.is_alphanumeric() {
+            label_name.push(character);
+            next_number += 1;
+        } else {
+            break;
+        }
+    }
+    for _ in 0..next_number {
+        characters.next();
+    }
+    Ok(Literal::Label(label_name))
+}
+
 fn resolve_identifier(first_value: char, characters: &mut Chars<'_>) -> Result<TokenType, TokenizerError> {
     let mut identifier = String::new();
+    let mut next_number = 0;
     identifier.push(first_value);
     for character in characters.clone().peekable() {
         if character.is_alphanumeric() {
             identifier.push(character);
-            characters.next();
+            next_number += 1;
         } else {
             break;
         }
     }
     match KEYWORDS.get(identifier.as_str()) {
-        Some(token) => Ok(*token),
+        Some(token) => {
+            for _ in 0..next_number {
+                characters.next();
+            }
+            Ok(*token)
+        },
         None => Err(TokenizerError::IdentifierMissmatch),
     }
 }

@@ -1,4 +1,4 @@
-use super::grammar::{Expression, Operation, Primary, Unary};
+use super::grammar::{Expression, Function, Operation, Primary, Unary};
 
 pub enum InterpreterResult{
     Num(f64),
@@ -18,7 +18,7 @@ pub enum InterpreterError{
 
 pub fn interpret_expression(expression: &Expression) -> Result<InterpreterResult, InterpreterError> {
     match expression {
-        Expression::Operation(Operation::Operation(left, operator, right)) => solve_operation(left, operator, right),
+        Expression::Function(Function::Operation(Operation::Operation(left, operator, right))) => solve_operation(left, operator, right),
         _ => Err(InterpreterError::ExpressionNotHandled),
     }
 }
