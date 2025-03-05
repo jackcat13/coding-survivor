@@ -66,7 +66,9 @@ fn editor_processing() {
                 Err(error) => match error {
                     TokenizerError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
                     TokenizerError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
-                    TokenizerError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()), 
+                    TokenizerError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()),
+                    TokenizerError::InvalidFunctionSyntax => editor_state.commands.push("ERR-Invalid function syntax".to_string()),
+                    TokenizerError::NoIdentifierNorFunctionError => editor_state.commands.push("ERR-No matching keyword nor function".to_string()),
                 },
             }
         } else {

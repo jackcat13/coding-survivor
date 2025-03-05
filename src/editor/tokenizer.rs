@@ -15,6 +15,7 @@ pub enum Literal {
     Str(String),
     Num(f64),
     Identifier(TokenType),
+    Function(String, Vec<String>),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -31,6 +32,9 @@ pub enum TokenType{
 
     // Keywords.
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE, EOF,
+
+    // Function call
+    FUN_CALL,
 }
 
 lazy_static! {
@@ -56,7 +60,11 @@ lazy_static! {
 
 #[derive(Debug)]
 pub enum TokenizerError{
-    TokenScanError, StringTokenScanError, IdentifierMissmatch,
+    TokenScanError,
+    StringTokenScanError,
+    IdentifierMissmatch,
+    InvalidFunctionSyntax,
+    NoIdentifierNorFunctionError,
 }
 
 pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
@@ -98,7 +106,10 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
                 } else if character.is_alphanumeric() {
                     match resolve_identifier(character, &mut characters) {
                         Ok(value) => add_token_with_literal(TokenType::IDENTIFIER, character, line, Literal::Identifier(value), &mut tokens),
-                        Err(err) => return Err(err),
+                        Err(_) => match resolve_function_call(character, &mut characters) {
+                            Ok(function) => tokens.push(Token { token_type: TokenType::FUN_CALL, lexeme: "function_call".to_string(), literal: Some(function), line }),
+                            Err(_) => return Err(TokenizerError::NoIdentifierNorFunctionError),
+                        },
                     }
                 } else {
                     return Err(TokenizerError::TokenScanError);
@@ -112,19 +123,69 @@ pub fn get_prompt_tokens(prompt: String) -> Result<Vec<Token>, TokenizerError> {
     Ok(tokens)
 }
 
+fn resolve_function_call(first_character: char, characters: &mut Chars<'_>) -> Result<Literal, TokenizerError> {
+    let mut function_name = String::new();
+    let mut parameters: Vec<String> = vec![];
+    let mut next_number = 0;
+    let mut characters_peek = characters.clone().peekable();
+    function_name.push(first_character);
+    for character in characters_peek.by_ref() {
+        if character.is_alphanumeric() {
+            function_name.push(character);
+            next_number += 1;
+        } else {
+            if character == '(' {
+                next_number += 1;
+            } else {
+                return Err(TokenizerError::InvalidFunctionSyntax)
+            }
+            break;
+        }
+    }
+    let mut parameter_name= String::new();
+    for character in characters_peek.by_ref() {
+        if character.is_alphanumeric() {
+            parameter_name.push(character);
+            next_number += 1;
+        } else if character == ',' {
+            parameters.push(parameter_name);
+            parameter_name = String::new();
+            next_number += 1;
+        } else {
+            if character == ')' {
+                parameters.push(parameter_name);
+                next_number += 1;
+            } else {
+                return Err(TokenizerError::InvalidFunctionSyntax)
+            }
+            break;
+        }
+    }
+    for _ in 0..next_number {
+        characters.next();
+    }
+    Ok(Literal::Function(function_name, parameters))
+}
+
 fn resolve_identifier(first_value: char, characters: &mut Chars<'_>) -> Result<TokenType, TokenizerError> {
     let mut identifier = String::new();
+    let mut next_number = 0;
     identifier.push(first_value);
     for character in characters.clone().peekable() {
         if character.is_alphanumeric() {
             identifier.push(character);
-            characters.next();
+            next_number += 1;
         } else {
             break;
         }
     }
     match KEYWORDS.get(identifier.as_str()) {
-        Some(token) => Ok(*token),
+        Some(token) => {
+            for _ in 0..next_number {
+                characters.next();
+            }
+            Ok(*token)
+        },
         None => Err(TokenizerError::IdentifierMissmatch),
     }
 }
