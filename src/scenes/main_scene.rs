@@ -60,6 +60,8 @@ fn editor_processing() {
                             AstParseError::MissingLiteralForIdentifier => editor_state.commands.push("ERR-Missing value for parsed Identifier".to_string()),
                             AstParseError::UnaryWithNoValidNextToken => editor_state.commands.push("ERR-Invalid value passed after ! or -".to_string()),
                             AstParseError::InvalidFactorExpressions => editor_state.commands.push("ERR-Invalid values passed to operation".to_string()),
+                            AstParseError::LabelWithNoValidNextToken => editor_state.commands.push("ERR-Invalid values passed after label".to_string()),
+                            AstParseError::InvalidTokensInGroup => editor_state.commands.push("ERR-Invalid values passed to () group".to_string()),
                         },
                     }
                 }

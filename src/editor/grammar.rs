@@ -10,6 +10,8 @@ pub enum AstParseError {
     MissingLiteralForIdentifier,
     UnaryWithNoValidNextToken,
     InvalidFactorExpressions,
+    LabelWithNoValidNextToken,
+    InvalidTokensInGroup,
 }
 
 #[derive(Debug)]
@@ -24,6 +26,7 @@ pub enum Expression {
 
 #[derive(Clone, Debug)]
 pub enum Function {
+    Group(Vec<Expression>),
     Operation(Operation),
 }
 
@@ -123,8 +126,45 @@ fn token_to_expression(
         }
     }
 
-    // Another match to test unary/literals since Minus is also tested in previous checks
     match token.token_type {
+        // LABELS
+        TokenType::LABEL => {
+            if let Some(next_token) = tokens.next() {
+                match token_to_expression(next_token, tokens, &None) {
+                    Ok(expression) => match expression {
+                        Expression::Function(Function::Group(group)) => {
+                            Ok(Expression::Function(Function::Group(group)))
+                        }
+                        _ => Err(AstParseError::LabelWithNoValidNextToken),
+                    },
+                    Err(error) => Err(error),
+                }
+            } else {
+                Err(AstParseError::LabelWithNoValidNextToken)
+            }
+        }
+
+        // GROUP
+        TokenType::LEFT_PAREN => {
+            let mut expressions: Vec<Expression> = vec![];
+            while let Some(next_token) = tokens.next() {
+                match token_to_expression(next_token, tokens, &None) {
+                    Ok(expression) => {
+                        expressions.push(expression);
+                        if let Some(next_next_token) = tokens.next() {
+                            match next_next_token.token_type {
+                                TokenType::COMMA => continue,
+                                TokenType::RIGHT_PAREN => return Ok(Expression::Function(Function::Group(expressions))),
+                                _ => return Err(AstParseError::InvalidTokensInGroup),
+                            }
+                        }
+                    },
+                    Err(error) => return Err(error),
+                }
+            }
+            Err(AstParseError::InvalidTokensInGroup)
+        }
+
         // UNARY
         TokenType::BANG => {
             if let Some(next_token) = tokens.next() {
