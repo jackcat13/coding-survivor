@@ -26,31 +26,64 @@ pub struct MapState {
 
 #[derive(Debug)]
 pub enum MoveError {
-    HitWall, NoTiles,
+    HitWall,
+    NoTiles,
+}
+
+#[derive(Debug)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 impl MapState {
-    pub fn may_move_player_down(&mut self) -> Result<(), MoveError> {
+    pub fn may_move_player(&mut self, direction: Direction) -> Result<(), MoveError> {
         let current_player_position = self.player.position;
         let (current_x, current_y) = (
             current_player_position.x as usize,
             current_player_position.y as usize,
         );
-        let next_y = current_y + 1;
-        if let Some(line) = self.tiles.get(next_y) {
-            if let Some(next_tile) = line.get(current_x) {
-                match next_tile {
-                    Tile::Wall => return Err(MoveError::HitWall),
-                    _ => (),
-                };
-                self.player.position = Vector2 {
-                    x: current_x as f32,
-                    y: next_y as f32,
-                };
-                return Ok(());
+        let mut next_x = 0;
+        let mut next_y = 0;
+        match direction {
+            Direction::Up => {
+                next_x = current_x;
+                next_y = current_y - 1;
             }
-        }
-        Err(MoveError::NoTiles)
+            Direction::Down => {
+                next_x = current_x;
+                next_y = current_y + 1;
+            }
+            Direction::Left => {
+                next_x = current_x - 1;
+                next_y = current_y;
+            }
+            Direction::Right => {
+                next_x = current_x + 1;
+                next_y = current_y;
+            }
+        };
+        println!("{}", next_x);
+        let next_tile = if let Some(line) = self.tiles.get(next_y) {
+            if let Some(next_tile) = line.get(next_x) {
+                next_tile
+            } else {
+                return Err(MoveError::NoTiles);
+            }
+        } else {
+            return Err(MoveError::NoTiles);
+        };
+        match next_tile {
+            Tile::Wall => return Err(MoveError::HitWall),
+            _ => (),
+        };
+        self.player.position = Vector2 {
+            x: next_x as f32,
+            y: next_y as f32,
+        };
+        Ok(())
     }
 }
 
