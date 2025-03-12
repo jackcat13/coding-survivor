@@ -26,6 +26,7 @@ pub enum Expression {
 
 #[derive(Clone, Debug)]
 pub enum Function {
+    NamedGroup(Vec<Expression>, String),
     Group(Vec<Expression>),
     Operation(Operation),
 }
@@ -133,7 +134,11 @@ fn token_to_expression(
                 match token_to_expression(next_token, tokens, &None) {
                     Ok(expression) => match expression {
                         Expression::Function(Function::Group(group)) => {
-                            Ok(Expression::Function(Function::Group(group)))
+                            let label = match token.literal.clone().expect("Label should be present") {
+                                Literal::Label(label_value) => label_value,
+                                _ => return Err(AstParseError::LabelWithNoValidNextToken),
+                            };
+                            Ok(Expression::Function(Function::NamedGroup(group, label)))
                         }
                         _ => Err(AstParseError::LabelWithNoValidNextToken),
                     },
@@ -148,6 +153,9 @@ fn token_to_expression(
         TokenType::LEFT_PAREN => {
             let mut expressions: Vec<Expression> = vec![];
             while let Some(next_token) = tokens.next() {
+                if next_token.token_type == TokenType::RIGHT_PAREN {
+                    return Ok(Expression::Function(Function::Group(expressions)))
+                }
                 match token_to_expression(next_token, tokens, &None) {
                     Ok(expression) => {
                         expressions.push(expression);

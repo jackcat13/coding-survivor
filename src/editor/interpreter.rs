@@ -1,4 +1,4 @@
-use super::grammar::{Expression, Function, Operation, Primary, Unary};
+use super::{functions::{FunctionError, FUNCTIONS}, grammar::{Expression, Function, Operation, Primary, Unary}};
 
 pub enum InterpreterResult{
     Num(f64),
@@ -14,12 +14,39 @@ pub enum InterpreterError{
     EofShouldNotBeInterpreted,
     InvalidOperationValues,
     UnexpectedLatelyInterpretedBang,
+    InvalidNativeFunction(FunctionError),
+    FunctionDoesNotExist,
 }
 
 pub fn interpret_expression(expression: &Expression) -> Result<InterpreterResult, InterpreterError> {
     match expression {
+        Expression::Function(Function::NamedGroup(expressions, label)) => solve_function_call(&expressions, label.to_string()),
         Expression::Function(Function::Operation(Operation::Operation(left, operator, right))) => solve_operation(left, operator, right),
         _ => Err(InterpreterError::ExpressionNotHandled),
+    }
+}
+
+fn solve_function_call(expressions: &Vec<Expression>, label: String) -> Result<InterpreterResult, InterpreterError> {
+    let functions = FUNCTIONS.lock().expect("Could not resolve FUNCTIONS");
+    if let Some(function) = functions.iter().find(|function| function.name == label) {
+        match &function.instructions {
+            super::functions::InstructionsDef::Expressions(expressions) => todo!(),
+            super::functions::InstructionsDef::NativeFunction(native_function) => {
+                let mut arguments: Vec<InterpreterResult> = vec![];
+                for expression in expressions {
+                    match interpret_expression(expression) {
+                        Ok(result) => arguments.push(result),
+                        Err(error) => return Err(error),
+                    }
+                }
+                match native_function(&arguments) {
+                    Ok(result) => Ok(result),
+                    Err(error) => Err(InterpreterError::InvalidNativeFunction(error)),
+                }
+            },
+        }
+    } else {
+        Err(InterpreterError::FunctionDoesNotExist)
     }
 }
 

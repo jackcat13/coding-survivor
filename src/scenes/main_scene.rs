@@ -6,7 +6,14 @@ use raylib::{
 };
 
 use crate::{
-    editor::{grammar::{resolve_ast, AstParseError}, interpreter::{interpret_expression, InterpreterResult}, keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED}, tokenizer::{get_prompt_tokens, TokenizerError}}, game_state::{EDITOR_STATE, MAP_STATE}, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    editor::{
+        grammar::{resolve_ast, AstParseError},
+        interpreter::{interpret_expression, InterpreterResult},
+        keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED},
+        tokenizer::{get_prompt_tokens, TokenizerError},
+    },
+    game_state::{EDITOR_STATE, MAP_STATE},
+    GET_EDITOR_STATE_ERROR, TILE_SIZE,
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
@@ -91,7 +98,13 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
     d.draw_rectangle(0, 0, x_game_anchor, height, Color::BLACK);
     let input_line: String = editor_state.buffer.iter().collect();
     let input_line = "> ".to_owned() + &input_line;
-    d.draw_text(&input_line, EDITOR_TEXT_X, EDITOR_PROMPT_Y, EDITOR_FONT_SIZE, Color::WHITE);
+    d.draw_text(
+        &input_line,
+        EDITOR_TEXT_X,
+        EDITOR_PROMPT_Y,
+        EDITOR_FONT_SIZE,
+        Color::WHITE,
+    );
     let mut y_history_position = EDITOR_HISTORY_Y;
     for history_text in editor_state.commands.iter().rev() {
         if y_history_position > height {
@@ -104,9 +117,17 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
         let line_max_width = width / character_width as i32;
         for _ in 0..lines {
             let mut x_index_end = x_index + line_max_width;
-            if x_index_end > text.len() as i32 { x_index_end = text.len() as i32 }
+            if x_index_end > text.len() as i32 {
+                x_index_end = text.len() as i32
+            }
             let text_slice = &text[x_index as usize..x_index_end as usize];
-            d.draw_text(text_slice, EDITOR_TEXT_X, y_history_position, EDITOR_FONT_SIZE, color);
+            d.draw_text(
+                text_slice,
+                EDITOR_TEXT_X,
+                y_history_position,
+                EDITOR_FONT_SIZE,
+                color,
+            );
             x_index += line_max_width;
             y_history_position += EDITOR_HISTORY_LINE_HEIGHT;
         }
@@ -119,7 +140,6 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32) {
     for line in map.tiles.iter() {
         for tile in line.iter() {
             let color = match tile {
-                crate::game_state::Tile::Player => Color::GREEN,
                 crate::game_state::Tile::Ground => Color::LIGHTGRAY,
                 crate::game_state::Tile::Wall => Color::GRAY,
             };
@@ -139,6 +159,19 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32) {
         x = x_game_anchor;
         y += 32;
     }
+    let player_x = map.player.position.x as i32 * 32 + x_game_anchor;
+    let player_y = map.player.position.y as i32 * 32;
+    d.draw_rectangle_v(
+        Vector2 {
+            x: player_x as f32,
+            y: player_y as f32,
+        },
+        Vector2 {
+            x: TILE_SIZE as f32,
+            y: TILE_SIZE as f32,
+        },
+        Color::GREEN,
+    );
 }
 
 fn resolve_history_text_format(history_text: String) -> (String, Color) {
@@ -148,5 +181,3 @@ fn resolve_history_text_format(history_text: String) -> (String, Color) {
     }
     (history_text, Color::WHITE)
 }
-
-
