@@ -22,9 +22,25 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
 
     d.clear_background(Color::GRAY);
 
+    process_player_position();
     editor_processing();
     editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
     map_rendering(&mut d, x_game_anchor);
+}
+
+const MOVE_VELOCITY: f32 = 0.25;
+fn process_player_position() {
+    let mut map = MAP_STATE.lock().expect("Failed to get map state");
+    if map.player.previous_position.x < map.player.position.x {
+        map.player.previous_position.x += MOVE_VELOCITY;
+    } else if map.player.previous_position.x > map.player.position.x {
+        map.player.previous_position.x -= MOVE_VELOCITY;
+    }
+    if map.player.previous_position.y < map.player.position.y {
+        map.player.previous_position.y += MOVE_VELOCITY;
+    } else if map.player.previous_position.y > map.player.position.y {
+        map.player.previous_position.y -= MOVE_VELOCITY;
+    }
 }
 
 #[allow(static_mut_refs)]
@@ -159,12 +175,12 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32) {
         x = x_game_anchor;
         y += 32;
     }
-    let player_x = map.player.position.x as i32 * 32 + x_game_anchor;
-    let player_y = map.player.position.y as i32 * 32;
+    let player_x = map.player.previous_position.x * TILE_SIZE as f32 + x_game_anchor as f32;
+    let player_y = map.player.previous_position.y * TILE_SIZE as f32;
     d.draw_rectangle_v(
         Vector2 {
-            x: player_x as f32,
-            y: player_y as f32,
+            x: player_x,
+            y: player_y,
         },
         Vector2 {
             x: TILE_SIZE as f32,

@@ -16,12 +16,18 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
     tiles: vec![],
     player: Player {
         position: Vector2 { x: 0.0, y: 0.0 },
+        previous_position: Vector2 { x: 0.0, y: 0.0 }
     },
 });
 
 pub struct MapState {
     pub tiles: Vec<Vec<Tile>>,
     pub player: Player,
+}
+
+pub struct Player {
+    pub position: Vector2,
+    pub previous_position: Vector2,
 }
 
 #[derive(Debug)]
@@ -87,10 +93,6 @@ impl MapState {
     }
 }
 
-pub struct Player {
-    pub position: Vector2,
-}
-
 pub enum Tile {
     Ground,
     Wall,
@@ -107,7 +109,9 @@ pub fn init_map(width: u32, height: u32) {
             } else {
                 if !is_player_placed {
                     map.player.position.x = x as f32;
+                    map.player.previous_position.x = x as f32;
                     map.player.position.y = y as f32;
+                    map.player.previous_position.y = y as f32;
                     is_player_placed = true;
                 } else {
                     line.push(Tile::Ground);
