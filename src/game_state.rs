@@ -17,6 +17,7 @@ pub struct EditorState {
 pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
     tiles: vec![],
     player: Player {
+        velocity: 0.25,
         position: Vector2 { x: 0.0, y: 0.0 },
         previous_position: Vector2 { x: 0.0, y: 0.0 }
     },
@@ -28,6 +29,7 @@ pub struct MapState {
 }
 
 pub struct Player {
+    pub velocity: f32,
     pub position: Vector2,
     pub previous_position: Vector2,
 }

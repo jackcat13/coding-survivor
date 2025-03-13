@@ -28,18 +28,17 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
     map_rendering(&mut d, x_game_anchor);
 }
 
-const MOVE_VELOCITY: f32 = 0.25;
 fn process_player_position() {
     let mut map = MAP_STATE.lock().expect("Failed to get map state");
     if map.player.previous_position.x < map.player.position.x {
-        map.player.previous_position.x += MOVE_VELOCITY;
+        map.player.previous_position.x += map.player.velocity;
     } else if map.player.previous_position.x > map.player.position.x {
-        map.player.previous_position.x -= MOVE_VELOCITY;
+        map.player.previous_position.x -= map.player.velocity;
     }
     if map.player.previous_position.y < map.player.position.y {
-        map.player.previous_position.y += MOVE_VELOCITY;
+        map.player.previous_position.y += map.player.velocity;
     } else if map.player.previous_position.y > map.player.position.y {
-        map.player.previous_position.y -= MOVE_VELOCITY;
+        map.player.previous_position.y -= map.player.velocity;
     }
 }
 
