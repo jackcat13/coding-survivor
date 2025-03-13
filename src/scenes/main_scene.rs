@@ -84,7 +84,7 @@ fn process_prompt(editor_state: &mut std::sync::MutexGuard<'_, crate::game_state
                             InterpreterResult::Num(num_result) => editor_state.commands.push(format!("Result : {}", num_result)),
                             InterpreterResult::Str(str_result) => editor_state.commands.push(format!("Result : {}", str_result)),
                             InterpreterResult::Bool(bool_result) => editor_state.commands.push(format!("Result : {}", bool_result)),
-                            InterpreterResult::Nil => editor_state.commands.push("Result : nil".to_string()),
+                            InterpreterResult::Nil => editor_state.commands.push("RES-Result : nil".to_string()),
                             _ => println!("Unexpected expression result"),
                         },
                         Err(error) => println!("{:?}", error),
@@ -204,6 +204,9 @@ fn resolve_history_text_format(history_text: String) -> (String, Color) {
     if history_text.starts_with("ERR-") {
         let text = history_text.replace("ERR-", "");
         return (text, Color::RED);
+    } else if history_text.starts_with("RES-") {
+        let text = history_text.replace("RES-", "");
+        return (text, Color::GREEN);
     }
     (history_text, Color::WHITE)
 }
