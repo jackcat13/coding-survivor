@@ -9,7 +9,7 @@ use crate::{
     editor::{
         grammar::{resolve_ast, AstParseError},
         interpreter::{interpret_expression, InterpreterResult},
-        keyboard::{BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED},
+        keyboard::{ARROW_UP, BACKSPACE, CARRIAGE_RETURN, KEYS_PRESSED},
         tokenizer::{get_prompt_tokens, TokenizerError},
     },
     game_state::{EDITOR_STATE, MAP_STATE},
@@ -50,15 +50,23 @@ fn editor_processing() {
     if let Some(key) = unsafe { KEYS_PRESSED.pop_back() } {
         if key == BACKSPACE {
             editor_state.buffer.pop();
+        } else if key == ARROW_UP {
+            editor_state.buffer = vec![];
+            if let Some(history) = editor_state.input_history.clone().last() {
+                for character in history.chars() {
+                    editor_state.buffer.push(character);
+                }
+            }
         } else if key == CARRIAGE_RETURN {
             let prompt: String = editor_state.buffer.iter().collect();
             editor_state.buffer = vec![];
+            editor_state.commands.push(prompt.clone());
+            editor_state.input_history.push(prompt.clone());
             let tokens = get_prompt_tokens(prompt.clone());
             println!("Tokens for the command :");
             tokens.iter().for_each(|token| {
                 println!("{:?}", token);
             });
-            editor_state.commands.push(prompt.clone());
             match tokens {
                 Ok(tokens) => {
                     println!("AST Expressions for the command :");

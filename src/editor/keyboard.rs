@@ -1,9 +1,10 @@
 use std::{collections::VecDeque, thread};
 
-use raylib::ffi::{self};
+use raylib::ffi::{self, KeyboardKey};
 
 pub const BACKSPACE: char = '\x08';
 pub const CARRIAGE_RETURN: char = '\x13';
+pub const ARROW_UP: char = '↑';
 pub static mut KEYS_PRESSED: VecDeque<char> = VecDeque::new();
 
 #[allow(static_mut_refs)]
@@ -21,10 +22,12 @@ pub fn start_keyboard_thread() {
 #[inline]
 pub fn process_key_pressed() {
     let key = unsafe { ffi::GetKeyPressed() };
-    if key == ffi::KeyboardKey::KEY_BACKSPACE as i32 {
+    if key == KeyboardKey::KEY_BACKSPACE as i32 {
         unsafe { KEYS_PRESSED.push_front(BACKSPACE) };
-    } else if key == ffi::KeyboardKey::KEY_ENTER as i32 {
+    } else if key == KeyboardKey::KEY_ENTER as i32 {
         unsafe { KEYS_PRESSED.push_front(CARRIAGE_RETURN) };
+    } else if key == KeyboardKey::KEY_UP as i32 {
+        unsafe { KEYS_PRESSED.push_front(ARROW_UP) };
     } else {
         //Process actual character in another thread to avoid performance loss
         thread::spawn(move || {

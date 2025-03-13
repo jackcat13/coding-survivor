@@ -5,11 +5,13 @@ use raylib::ffi::Vector2;
 pub static EDITOR_STATE: Mutex<EditorState> = Mutex::new(EditorState {
     buffer: vec![],
     commands: vec![],
+    input_history: vec![],
 });
 
 pub struct EditorState {
     pub buffer: Vec<char>,
     pub commands: Vec<String>,
+    pub input_history: Vec<String>,
 }
 
 pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
