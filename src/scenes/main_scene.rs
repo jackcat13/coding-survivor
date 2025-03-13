@@ -48,66 +48,69 @@ fn editor_processing() {
     let mut editor_state = EDITOR_STATE.lock().expect(GET_EDITOR_STATE_ERROR);
 
     if let Some(key) = unsafe { KEYS_PRESSED.pop_back() } {
-        if key == BACKSPACE {
-            editor_state.buffer.pop();
-        } else if key == ARROW_UP {
-            editor_state.buffer = vec![];
-            if let Some(history) = editor_state.input_history.clone().last() {
-                for character in history.chars() {
-                    editor_state.buffer.push(character);
-                }
-            }
-        } else if key == CARRIAGE_RETURN {
-            let prompt: String = editor_state.buffer.iter().collect();
-            editor_state.buffer = vec![];
-            editor_state.commands.push(prompt.clone());
-            editor_state.input_history.push(prompt.clone());
-            let tokens = get_prompt_tokens(prompt.clone());
-            println!("Tokens for the command :");
-            tokens.iter().for_each(|token| {
-                println!("{:?}", token);
-            });
-            match tokens {
-                Ok(tokens) => {
-                    println!("AST Expressions for the command :");
-                    match resolve_ast(tokens) {
-                        Ok(ast) => ast.tree.iter().for_each(|expression| {
-                            println!("{:?}", expression);
-                            match interpret_expression(expression) {
-                                Ok(result) => match result {
-                                    InterpreterResult::Num(num_result) => editor_state.commands.push(format!("Result : {}", num_result)),
-                                    InterpreterResult::Str(str_result) => editor_state.commands.push(format!("Result : {}", str_result)),
-                                    InterpreterResult::Bool(bool_result) => editor_state.commands.push(format!("Result : {}", bool_result)),
-                                    InterpreterResult::Nil => editor_state.commands.push("Result : nil".to_string()),
-                                    _ => println!("Unexpected expression result"),
-                                },
-                                Err(error) => println!("{:?}", error),
-                            }
-                        }),
-                        Err(error) => match error {
-                            AstParseError::TokenInvalidGrammar => editor_state.commands.push("ERR-Invalid grammar for provided command".to_string()),
-                            AstParseError::MissingLiteralForNumber => editor_state.commands.push("ERR-Missing value for parsed number".to_string()),
-                            AstParseError::MissingLiteralForString => editor_state.commands.push("ERR-Missing value for parsed String".to_string()),
-                            AstParseError::MissingLiteralForIdentifier => editor_state.commands.push("ERR-Missing value for parsed Identifier".to_string()),
-                            AstParseError::UnaryWithNoValidNextToken => editor_state.commands.push("ERR-Invalid value passed after ! or -".to_string()),
-                            AstParseError::InvalidFactorExpressions => editor_state.commands.push("ERR-Invalid values passed to operation".to_string()),
-                            AstParseError::LabelWithNoValidNextToken => editor_state.commands.push("ERR-Invalid values passed after label".to_string()),
-                            AstParseError::InvalidTokensInGroup => editor_state.commands.push("ERR-Invalid values passed to () group".to_string()),
-                        },
+        match key {
+            BACKSPACE => { editor_state.buffer.pop(); },
+            ARROW_UP => {
+                editor_state.buffer = vec![];
+                if let Some(history) = editor_state.input_history.clone().last() {
+                    for character in history.chars() {
+                        editor_state.buffer.push(character);
                     }
-                }
+                };
+            },
+            CARRIAGE_RETURN => process_prompt(&mut editor_state),
+            _ => editor_state.buffer.push(key),
+        };
+    }
+}
+
+fn process_prompt(editor_state: &mut std::sync::MutexGuard<'_, crate::game_state::EditorState>) {
+    let prompt: String = editor_state.buffer.iter().collect();
+    editor_state.buffer = vec![];
+    editor_state.commands.push(prompt.clone());
+    editor_state.input_history.push(prompt.clone());
+    let tokens = get_prompt_tokens(prompt.clone());
+    println!("Tokens for the command :");
+    tokens.iter().for_each(|token| {
+        println!("{:?}", token);
+    });
+    match tokens {
+        Ok(tokens) => {
+            println!("AST Expressions for the command :");
+            match resolve_ast(tokens) {
+                Ok(ast) => ast.tree.iter().for_each(|expression| {
+                    println!("{:?}", expression);
+                    match interpret_expression(expression) {
+                        Ok(result) => match result {
+                            InterpreterResult::Num(num_result) => editor_state.commands.push(format!("Result : {}", num_result)),
+                            InterpreterResult::Str(str_result) => editor_state.commands.push(format!("Result : {}", str_result)),
+                            InterpreterResult::Bool(bool_result) => editor_state.commands.push(format!("Result : {}", bool_result)),
+                            InterpreterResult::Nil => editor_state.commands.push("Result : nil".to_string()),
+                            _ => println!("Unexpected expression result"),
+                        },
+                        Err(error) => println!("{:?}", error),
+                    }
+                }),
                 Err(error) => match error {
-                    TokenizerError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
-                    TokenizerError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
-                    TokenizerError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()),
-                    TokenizerError::InvalidFunctionSyntax => editor_state.commands.push("ERR-Invalid function syntax".to_string()),
-                    TokenizerError::NoIdentifierNorFunctionError => editor_state.commands.push("ERR-No matching keyword nor function".to_string()),
+                    AstParseError::TokenInvalidGrammar => editor_state.commands.push("ERR-Invalid grammar for provided command".to_string()),
+                    AstParseError::MissingLiteralForNumber => editor_state.commands.push("ERR-Missing value for parsed number".to_string()),
+                    AstParseError::MissingLiteralForString => editor_state.commands.push("ERR-Missing value for parsed String".to_string()),
+                    AstParseError::MissingLiteralForIdentifier => editor_state.commands.push("ERR-Missing value for parsed Identifier".to_string()),
+                    AstParseError::UnaryWithNoValidNextToken => editor_state.commands.push("ERR-Invalid value passed after ! or -".to_string()),
+                    AstParseError::InvalidFactorExpressions => editor_state.commands.push("ERR-Invalid values passed to operation".to_string()),
+                    AstParseError::LabelWithNoValidNextToken => editor_state.commands.push("ERR-Invalid values passed after label".to_string()),
+                    AstParseError::InvalidTokensInGroup => editor_state.commands.push("ERR-Invalid values passed to () group".to_string()),
                 },
             }
-        } else {
-            editor_state.buffer.push(key);
         }
-    }
+        Err(error) => match error {
+            TokenizerError::TokenScanError => editor_state.commands.push("ERR-Some unexpected character used while processing input".to_string()),
+            TokenizerError::StringTokenScanError => editor_state.commands.push("ERR-Invalid String definition while processing input. Any \" must match another \" character".to_string()),
+            TokenizerError::IdentifierMissmatch => editor_state.commands.push("ERR-Invalid identifier, use a valid keyword instead".to_string()),
+            TokenizerError::InvalidFunctionSyntax => editor_state.commands.push("ERR-Invalid function syntax".to_string()),
+            TokenizerError::NoIdentifierNorFunctionError => editor_state.commands.push("ERR-No matching keyword nor function".to_string()),
+        },
+    };
 }
 
 const EDITOR_PROMPT_Y: i32 = 10;
