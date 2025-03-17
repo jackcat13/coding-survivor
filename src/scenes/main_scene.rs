@@ -1,8 +1,5 @@
 use raylib::{
-    color::Color,
-    ffi::Vector2,
-    prelude::{RaylibDraw, RaylibDrawHandle},
-    RaylibHandle, RaylibThread,
+    camera::Camera2D, color::Color, math::Vector2, prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt}, RaylibHandle, RaylibThread
 };
 
 use crate::{
@@ -18,7 +15,7 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
 
     process_player_position();
     editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
-    map_rendering(&mut d, x_game_anchor);
+    map_rendering(&mut d, x_game_anchor, width, height);
 }
 
 fn process_player_position() {
@@ -83,8 +80,34 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
     }
 }
 
-fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32) {
+fn resolve_history_text_format(history_text: String) -> (String, Color) {
+    if history_text.starts_with("ERR-") {
+        let text = history_text.replace("ERR-", "");
+        return (text, Color::RED);
+    } else if history_text.starts_with("RES-") {
+        let text = history_text.replace("RES-", "");
+        return (text, Color::GREEN);
+    }
+    (history_text, Color::WHITE)
+}
+
+fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, height: i32) {
     let map = MAP_STATE.lock().expect("Failed to get map state");
+    let player_x = map.player.previous_position.x * TILE_SIZE as f32 + x_game_anchor as f32;
+    let player_y = map.player.previous_position.y * TILE_SIZE as f32;
+    let camera = Camera2D {
+        offset: Vector2 {
+            x: (width as f32 + x_game_anchor as f32) / 2.0,
+            y: height as f32 / 2.0,
+        },
+        target: Vector2 {
+            x: player_x,
+            y: player_y,
+        },
+        rotation: f32::default(),
+        zoom: 1.0,
+    };
+    let mut d = d.begin_mode2D(camera);
     let (mut x, mut y) = (x_game_anchor, 0);
     for line in map.tiles.iter() {
         for tile in line.iter() {
@@ -108,8 +131,6 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32) {
         x = x_game_anchor;
         y += 32;
     }
-    let player_x = map.player.previous_position.x * TILE_SIZE as f32 + x_game_anchor as f32;
-    let player_y = map.player.previous_position.y * TILE_SIZE as f32;
     d.draw_rectangle_v(
         Vector2 {
             x: player_x,
@@ -121,15 +142,4 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32) {
         },
         Color::GREEN,
     );
-}
-
-fn resolve_history_text_format(history_text: String) -> (String, Color) {
-    if history_text.starts_with("ERR-") {
-        let text = history_text.replace("ERR-", "");
-        return (text, Color::RED);
-    } else if history_text.starts_with("RES-") {
-        let text = history_text.replace("RES-", "");
-        return (text, Color::GREEN);
-    }
-    (history_text, Color::WHITE)
 }
