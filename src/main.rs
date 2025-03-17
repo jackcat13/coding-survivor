@@ -11,8 +11,8 @@ mod scenes;
 
 const GAME_NAME: &str = "Coding Survivor";
 const TARGET_FPS: u32 = 60;
-const GAME_WIDTH: u32 = 1000;
-const GAME_HEIGHT: u32 = 1000;
+const GAME_WIDTH: u32 = 10000;
+const GAME_HEIGHT: u32 = 10000;
 const TILE_SIZE: u8 = 32;
 
 const GET_EDITOR_STATE_ERROR: &str = "Failed to get editor state";

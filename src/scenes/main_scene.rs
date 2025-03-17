@@ -1,10 +1,14 @@
 use raylib::{
-    camera::Camera2D, color::Color, math::Vector2, prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt}, RaylibHandle, RaylibThread
+    camera::Camera2D,
+    color::Color,
+    math::Vector2,
+    prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt},
+    RaylibHandle, RaylibThread,
 };
 
 use crate::{
     game_state::{EDITOR_STATE, MAP_STATE},
-    GET_EDITOR_STATE_ERROR, TILE_SIZE,
+    GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE,
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
@@ -109,8 +113,9 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, heigh
     };
     let mut d = d.begin_mode2D(camera);
     let (mut x, mut y) = (x_game_anchor, 0);
-    for line in map.tiles.iter() {
-        for tile in line.iter() {
+    let (range_x, range_y) = get_map_rendering_bounds(player_x, player_y);
+    for line in map.tiles[range_y.clone()].iter() {
+        for tile in line[range_x.clone()].iter() {
             let color = match tile {
                 crate::game_state::Tile::Ground => Color::LIGHTGRAY,
                 crate::game_state::Tile::Wall => Color::GRAY,
@@ -142,4 +147,35 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, heigh
         },
         Color::GREEN,
     );
+}
+
+const MAP_MAX_RENDER_DISTANCE: f32 = 200.0;
+fn get_map_rendering_bounds(
+    player_x: f32,
+    player_y: f32,
+) -> (std::ops::Range<usize>, std::ops::Range<usize>) {
+    let min_x = if player_x - MAP_MAX_RENDER_DISTANCE < 0.0 {
+        0.0
+    } else {
+        player_x - MAP_MAX_RENDER_DISTANCE
+    };
+    let max_x = if player_x + MAP_MAX_RENDER_DISTANCE > (GAME_WIDTH as f32 - 1.0) {
+        GAME_WIDTH as f32 - 1.0
+    } else {
+        player_x + MAP_MAX_RENDER_DISTANCE
+    };
+    let min_y = if player_y - MAP_MAX_RENDER_DISTANCE < 0.0 {
+        0.0
+    } else {
+        player_y - MAP_MAX_RENDER_DISTANCE
+    };
+    let max_y = if player_y + MAP_MAX_RENDER_DISTANCE > (GAME_HEIGHT as f32 - 1.0) {
+        GAME_HEIGHT as f32 - 1.0
+    } else {
+        player_y + MAP_MAX_RENDER_DISTANCE
+    };
+    (
+        min_x as usize..max_x as usize,
+        min_y as usize..max_y as usize,
+    )
 }
