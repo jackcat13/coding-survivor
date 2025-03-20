@@ -2,12 +2,17 @@ use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
-use crate::game_state::{Direction, MoveError, MAP_STATE};
+use crate::{editor::grammar::{Function, Operation, Primary, Unary}, game_state::{Direction, MoveError, MAP_STATE}};
 
 use super::{grammar::Expression, interpreter::InterpreterResult};
 
 lazy_static! {
     pub static ref FUNCTIONS: Mutex<Vec<FunctionDef>> = Mutex::new(vec![
+        FunctionDef {
+            name: "test".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::Expressions(vec![Expression::Function(Function::Operation(Operation::Unary(Unary::Primary(Primary::Str("Working".to_string())))))])
+        },
         FunctionDef {
             name: "moveDown".to_string(),
             arguments: vec![],

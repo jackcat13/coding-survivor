@@ -95,7 +95,7 @@ fn process_prompt(editor_state: &mut std::sync::MutexGuard<'_, crate::game_state
                             InterpreterResult::Num(num_result) => editor_result_message(editor_state, &num_result),
                             InterpreterResult::Str(str_result) => editor_result_message(editor_state, &str_result),
                             InterpreterResult::Bool(bool_result) => editor_result_message(editor_state, &bool_result),
-                            InterpreterResult::Nil => editor_success_message(editor_state, &"Performed"),
+                            InterpreterResult::Nil => (),
                             _ => println!("Unexpected expression result"),
                         },
                         Err(error) => println!("{:?}", error),
@@ -103,22 +103,22 @@ fn process_prompt(editor_state: &mut std::sync::MutexGuard<'_, crate::game_state
                 }),
                 Err(error) => match error {
                     AstParseError::TokenInvalidGrammar => editor_error_message(editor_state, &"Invalid grammar for provided command"),
-                    AstParseError::MissingLiteralForNumber => editor_error_message(editor_state, &"ERR-Missing value for parsed number"),
-                    AstParseError::MissingLiteralForString => editor_error_message(editor_state, &"ERR-Missing value for parsed String"),
-                    AstParseError::MissingLiteralForIdentifier => editor_error_message(editor_state, &"ERR-Missing value for parsed Identifier"),
-                    AstParseError::UnaryWithNoValidNextToken => editor_error_message(editor_state, &"ERR-Invalid value passed after ! or -"),
-                    AstParseError::InvalidFactorExpressions => editor_error_message(editor_state, &"ERR-Invalid values passed to operation"),
-                    AstParseError::LabelWithNoValidNextToken => editor_error_message(editor_state, &"ERR-Invalid values passed after label"),
-                    AstParseError::InvalidTokensInGroup => editor_error_message(editor_state, &"ERR-Invalid values passed to () group"),
+                    AstParseError::MissingLiteralForNumber => editor_error_message(editor_state, &"Missing value for parsed number"),
+                    AstParseError::MissingLiteralForString => editor_error_message(editor_state, &"Missing value for parsed String"),
+                    AstParseError::MissingLiteralForIdentifier => editor_error_message(editor_state, &"Missing value for parsed Identifier"),
+                    AstParseError::UnaryWithNoValidNextToken => editor_error_message(editor_state, &"Invalid value passed after ! or -"),
+                    AstParseError::InvalidFactorExpressions => editor_error_message(editor_state, &"Invalid values passed to operation"),
+                    AstParseError::LabelWithNoValidNextToken => editor_error_message(editor_state, &"Invalid values passed after label"),
+                    AstParseError::InvalidTokensInGroup => editor_error_message(editor_state, &"Invalid values passed to () group"),
                 },
             }
         }
         Err(error) => match error {
-            TokenizerError::TokenScanError => editor_error_message(editor_state, &"ERR-Some unexpected character used while processing input"),
-            TokenizerError::StringTokenScanError => editor_error_message(editor_state, &"ERR-Invalid String definition while processing input. Any \" must match another \" character"),
-            TokenizerError::IdentifierMissmatch => editor_error_message(editor_state, &"ERR-Invalid identifier, use a valid keyword instead"),
-            TokenizerError::InvalidFunctionSyntax => editor_error_message(editor_state, &"ERR-Invalid function syntax"),
-            TokenizerError::NoIdentifierNorFunctionError => editor_error_message(editor_state, &"ERR-No matching keyword nor function"),
+            TokenizerError::TokenScanError => editor_error_message(editor_state, &"Some unexpected character used while processing input"),
+            TokenizerError::StringTokenScanError => editor_error_message(editor_state, &"Invalid String definition while processing input. Any \" must match another \" character"),
+            TokenizerError::IdentifierMissmatch => editor_error_message(editor_state, &"Invalid identifier, use a valid keyword instead"),
+            TokenizerError::InvalidFunctionSyntax => editor_error_message(editor_state, &"Invalid function syntax"),
+            TokenizerError::NoIdentifierNorFunctionError => editor_error_message(editor_state, &"No matching keyword nor function"),
         },
     };
 }
@@ -127,16 +127,7 @@ fn editor_result_message(
     editor_state: &mut std::sync::MutexGuard<'_, crate::game_state::EditorState>,
     message: &dyn Display,
 ) {
-    editor_state.commands.push(format!("Result : {}", message));
-}
-
-fn editor_success_message(
-    editor_state: &mut std::sync::MutexGuard<'_, crate::game_state::EditorState>,
-    message: &dyn Display,
-) {
-    editor_state
-        .commands
-        .push(format!("RES-Result : {}", message));
+    editor_state.commands.push(format!("RES-Result : {}", message));
 }
 
 fn editor_error_message(

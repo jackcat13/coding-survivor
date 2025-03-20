@@ -1,6 +1,10 @@
-use super::{functions::{FunctionError, FUNCTIONS}, grammar::{Expression, Function, Operation, Primary, Unary}};
+use super::{
+    functions::{FunctionError, InstructionsDef, FUNCTIONS},
+    grammar::{Expression, Function, Operation, Primary, Unary},
+};
 
-pub enum InterpreterResult{
+#[derive(Debug)]
+pub enum InterpreterResult {
     Num(f64),
     Str(String),
     Bool(bool),
@@ -9,7 +13,7 @@ pub enum InterpreterResult{
 }
 
 #[derive(Debug)]
-pub enum InterpreterError{
+pub enum InterpreterError {
     ExpressionNotHandled,
     EofShouldNotBeInterpreted,
     InvalidOperationValues,
@@ -18,39 +22,73 @@ pub enum InterpreterError{
     FunctionDoesNotExist,
 }
 
-pub fn interpret_expression(expression: &Expression) -> Result<InterpreterResult, InterpreterError> {
+pub fn interpret_expression(
+    expression: &Expression,
+) -> Result<InterpreterResult, InterpreterError> {
     match expression {
-        Expression::Function(Function::NamedGroup(expressions, label)) => solve_function_call(&expressions, label.to_string()),
-        Expression::Function(Function::Operation(Operation::Operation(left, operator, right))) => solve_operation(left, operator, right),
+        Expression::Function(Function::NamedGroup(expressions, label)) => {
+            solve_function_call(&expressions, label.to_string())
+        }
+        Expression::Function(Function::Operation(Operation::Operation(left, operator, right))) => {
+            solve_operation(left, operator, right)
+        }
+        Expression::Function(Function::Operation(Operation::Unary(Unary::Primary(value)))) => {
+            let result = match value {
+                Primary::Number(number) => InterpreterResult::Num(*number),
+                Primary::Str(string) => InterpreterResult::Str(string.to_string()),
+                Primary::True => InterpreterResult::Bool(true),
+                Primary::False => InterpreterResult::Bool(false),
+                _ => InterpreterResult::Nil,
+            };
+            Ok(result)
+        }
         _ => Err(InterpreterError::ExpressionNotHandled),
     }
 }
 
-fn solve_function_call(expressions: &Vec<Expression>, label: String) -> Result<InterpreterResult, InterpreterError> {
+fn solve_function_call(
+    expressions: &Vec<Expression>,
+    label: String,
+) -> Result<InterpreterResult, InterpreterError> {
     let functions = FUNCTIONS.lock().expect("Could not resolve FUNCTIONS");
     if let Some(function) = functions.iter().find(|function| function.name == label) {
+        println!("Calling function {}", label);
+        let mut arguments: Vec<InterpreterResult> = vec![];
+        for expression in expressions {
+            match interpret_expression(expression) {
+                Ok(result) => arguments.push(result),
+                Err(error) => return Err(error),
+            }
+        }
         match &function.instructions {
-            super::functions::InstructionsDef::Expressions(expressions) => todo!(),
-            super::functions::InstructionsDef::NativeFunction(native_function) => {
-                let mut arguments: Vec<InterpreterResult> = vec![];
-                for expression in expressions {
-                    match interpret_expression(expression) {
-                        Ok(result) => arguments.push(result),
+            super::functions::InstructionsDef::Expressions(instructions) => {
+                let mut result = InterpreterResult::Nil;
+                for instruction in instructions {
+                    match interpret_expression(instruction) {
+                        Ok(instruction_result) => result = instruction_result,
                         Err(error) => return Err(error),
                     }
                 }
+                println!("User function result : {:?}", result);
+                Ok(result)
+            },
+            super::functions::InstructionsDef::NativeFunction(native_function) => {
                 match native_function(&arguments) {
                     Ok(result) => Ok(result),
                     Err(error) => Err(InterpreterError::InvalidNativeFunction(error)),
                 }
-            },
+            }
         }
     } else {
         Err(InterpreterError::FunctionDoesNotExist)
     }
 }
 
-fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right: &Operation) -> Result<InterpreterResult, InterpreterError> {
+fn solve_operation(
+    left: &Operation,
+    operator: &super::grammar::Operator,
+    right: &Operation,
+) -> Result<InterpreterResult, InterpreterError> {
     let (left, right) = interpret_operation_parts(left, right);
     match left {
         Ok(left) => match right {
@@ -72,16 +110,21 @@ fn solve_operation(left: &Operation, operator: &super::grammar::Operator, right:
     }
 }
 
-fn solve_greater(left: InterpreterResult, right: InterpreterResult, or_equal: bool) -> Result<InterpreterResult, InterpreterError> {
+fn solve_greater(
+    left: InterpreterResult,
+    right: InterpreterResult,
+    or_equal: bool,
+) -> Result<InterpreterResult, InterpreterError> {
     let false_result = Ok(InterpreterResult::Bool(false));
     match left {
         InterpreterResult::Num(left_num) => match right {
-            InterpreterResult::Num(right_num) => 
+            InterpreterResult::Num(right_num) => {
                 if or_equal {
                     Ok(InterpreterResult::Bool(left_num >= right_num))
                 } else {
                     Ok(InterpreterResult::Bool(left_num > right_num))
-                },
+                }
+            }
             InterpreterResult::Str(_) => false_result,
             InterpreterResult::Bool(_) => false_result,
             InterpreterResult::Bang(_) => false_result,
@@ -89,12 +132,13 @@ fn solve_greater(left: InterpreterResult, right: InterpreterResult, or_equal: bo
         },
         InterpreterResult::Str(left_str) => match right {
             InterpreterResult::Num(_) => false_result,
-            InterpreterResult::Str(right_str) => 
+            InterpreterResult::Str(right_str) => {
                 if or_equal {
                     Ok(InterpreterResult::Bool(left_str.len() >= right_str.len()))
                 } else {
                     Ok(InterpreterResult::Bool(left_str.len() > right_str.len()))
-                },
+                }
+            }
             InterpreterResult::Bool(_) => false_result,
             InterpreterResult::Bang(_) => false_result,
             InterpreterResult::Nil => false_result,
@@ -103,16 +147,21 @@ fn solve_greater(left: InterpreterResult, right: InterpreterResult, or_equal: bo
     }
 }
 
-fn solve_less(left: InterpreterResult, right: InterpreterResult, or_equal: bool) -> Result<InterpreterResult, InterpreterError> {
+fn solve_less(
+    left: InterpreterResult,
+    right: InterpreterResult,
+    or_equal: bool,
+) -> Result<InterpreterResult, InterpreterError> {
     let false_result = Ok(InterpreterResult::Bool(false));
     match left {
         InterpreterResult::Num(left_num) => match right {
-            InterpreterResult::Num(right_num) => 
+            InterpreterResult::Num(right_num) => {
                 if or_equal {
                     Ok(InterpreterResult::Bool(left_num <= right_num))
                 } else {
                     Ok(InterpreterResult::Bool(left_num < right_num))
-                },
+                }
+            }
             InterpreterResult::Str(_) => false_result,
             InterpreterResult::Bool(_) => false_result,
             InterpreterResult::Bang(_) => false_result,
@@ -120,12 +169,13 @@ fn solve_less(left: InterpreterResult, right: InterpreterResult, or_equal: bool)
         },
         InterpreterResult::Str(left_str) => match right {
             InterpreterResult::Num(_) => false_result,
-            InterpreterResult::Str(right_str) => 
+            InterpreterResult::Str(right_str) => {
                 if or_equal {
                     Ok(InterpreterResult::Bool(left_str.len() <= right_str.len()))
                 } else {
                     Ok(InterpreterResult::Bool(left_str.len() < right_str.len()))
-                },
+                }
+            }
             InterpreterResult::Bool(_) => false_result,
             InterpreterResult::Bang(_) => false_result,
             InterpreterResult::Nil => false_result,
@@ -134,7 +184,10 @@ fn solve_less(left: InterpreterResult, right: InterpreterResult, or_equal: bool)
     }
 }
 
-fn solve_bang_equal(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+fn solve_bang_equal(
+    left: InterpreterResult,
+    right: InterpreterResult,
+) -> Result<InterpreterResult, InterpreterError> {
     let true_result = Ok(InterpreterResult::Bool(true));
     match left {
         InterpreterResult::Num(left_num) => match right {
@@ -146,7 +199,9 @@ fn solve_bang_equal(left: InterpreterResult, right: InterpreterResult) -> Result
         },
         InterpreterResult::Str(left_str) => match right {
             InterpreterResult::Num(_) => true_result,
-            InterpreterResult::Str(right_str) => Ok(InterpreterResult::Bool(!left_str.eq(&right_str))),
+            InterpreterResult::Str(right_str) => {
+                Ok(InterpreterResult::Bool(!left_str.eq(&right_str)))
+            }
             InterpreterResult::Bool(_) => true_result,
             InterpreterResult::Bang(_) => true_result,
             InterpreterResult::Nil => true_result,
@@ -154,7 +209,9 @@ fn solve_bang_equal(left: InterpreterResult, right: InterpreterResult) -> Result
         InterpreterResult::Bool(left_bool) => match right {
             InterpreterResult::Num(_) => true_result,
             InterpreterResult::Str(_) => true_result,
-            InterpreterResult::Bool(right_bool) => Ok(InterpreterResult::Bool(left_bool != right_bool)),
+            InterpreterResult::Bool(right_bool) => {
+                Ok(InterpreterResult::Bool(left_bool != right_bool))
+            }
             InterpreterResult::Bang(_) => true_result,
             InterpreterResult::Nil => true_result,
         },
@@ -165,11 +222,14 @@ fn solve_bang_equal(left: InterpreterResult, right: InterpreterResult) -> Result
             InterpreterResult::Bool(_) => true_result,
             InterpreterResult::Bang(_) => true_result,
             InterpreterResult::Nil => Ok(InterpreterResult::Bool(false)),
-        }
+        },
     }
 }
 
-fn solve_equal_equal(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+fn solve_equal_equal(
+    left: InterpreterResult,
+    right: InterpreterResult,
+) -> Result<InterpreterResult, InterpreterError> {
     let false_result = Ok(InterpreterResult::Bool(false));
     match left {
         InterpreterResult::Num(left_num) => match right {
@@ -181,7 +241,9 @@ fn solve_equal_equal(left: InterpreterResult, right: InterpreterResult) -> Resul
         },
         InterpreterResult::Str(left_str) => match right {
             InterpreterResult::Num(_) => false_result,
-            InterpreterResult::Str(right_str) => Ok(InterpreterResult::Bool(left_str.eq(&right_str))),
+            InterpreterResult::Str(right_str) => {
+                Ok(InterpreterResult::Bool(left_str.eq(&right_str)))
+            }
             InterpreterResult::Bool(_) => false_result,
             InterpreterResult::Bang(_) => false_result,
             InterpreterResult::Nil => false_result,
@@ -189,7 +251,9 @@ fn solve_equal_equal(left: InterpreterResult, right: InterpreterResult) -> Resul
         InterpreterResult::Bool(left_bool) => match right {
             InterpreterResult::Num(_) => false_result,
             InterpreterResult::Str(_) => false_result,
-            InterpreterResult::Bool(right_bool) => Ok(InterpreterResult::Bool(left_bool == right_bool)),
+            InterpreterResult::Bool(right_bool) => {
+                Ok(InterpreterResult::Bool(left_bool == right_bool))
+            }
             InterpreterResult::Bang(_) => false_result,
             InterpreterResult::Nil => false_result,
         },
@@ -204,7 +268,10 @@ fn solve_equal_equal(left: InterpreterResult, right: InterpreterResult) -> Resul
     }
 }
 
-fn solve_division(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+fn solve_division(
+    left: InterpreterResult,
+    right: InterpreterResult,
+) -> Result<InterpreterResult, InterpreterError> {
     match left {
         InterpreterResult::Num(num_left) => match right {
             InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left / num_right)),
@@ -214,7 +281,10 @@ fn solve_division(left: InterpreterResult, right: InterpreterResult) -> Result<I
     }
 }
 
-fn solve_multiplication(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+fn solve_multiplication(
+    left: InterpreterResult,
+    right: InterpreterResult,
+) -> Result<InterpreterResult, InterpreterError> {
     match left {
         InterpreterResult::Num(num_left) => match right {
             InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left * num_right)),
@@ -224,7 +294,10 @@ fn solve_multiplication(left: InterpreterResult, right: InterpreterResult) -> Re
     }
 }
 
-fn solve_minus(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+fn solve_minus(
+    left: InterpreterResult,
+    right: InterpreterResult,
+) -> Result<InterpreterResult, InterpreterError> {
     match left {
         InterpreterResult::Num(num_left) => match right {
             InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left - num_right)),
@@ -234,17 +307,26 @@ fn solve_minus(left: InterpreterResult, right: InterpreterResult) -> Result<Inte
     }
 }
 
-fn solve_add(left: InterpreterResult, right: InterpreterResult) -> Result<InterpreterResult, InterpreterError> {
+fn solve_add(
+    left: InterpreterResult,
+    right: InterpreterResult,
+) -> Result<InterpreterResult, InterpreterError> {
     match left {
         InterpreterResult::Num(num_left) => match right {
             InterpreterResult::Num(num_right) => Ok(InterpreterResult::Num(num_left + num_right)),
-            InterpreterResult::Str(str_right) => Ok(InterpreterResult::Str(num_left.to_string() + &str_right)),
+            InterpreterResult::Str(str_right) => {
+                Ok(InterpreterResult::Str(num_left.to_string() + &str_right))
+            }
             _ => Err(InterpreterError::InvalidOperationValues),
         },
         InterpreterResult::Str(str_left) => match right {
-            InterpreterResult::Num(num_right) => Ok(InterpreterResult::Str(str_left + &num_right.to_string())),
+            InterpreterResult::Num(num_right) => {
+                Ok(InterpreterResult::Str(str_left + &num_right.to_string()))
+            }
             InterpreterResult::Str(str_right) => Ok(InterpreterResult::Str(str_left + &str_right)),
-            InterpreterResult::Bool(bool_right) => Ok(InterpreterResult::Str(str_left + &bool_right.to_string())),
+            InterpreterResult::Bool(bool_right) => {
+                Ok(InterpreterResult::Str(str_left + &bool_right.to_string()))
+            }
             InterpreterResult::Nil => Ok(InterpreterResult::Str(str_left + "nil")),
             _ => Err(InterpreterError::InvalidOperationValues),
         },
@@ -252,13 +334,23 @@ fn solve_add(left: InterpreterResult, right: InterpreterResult) -> Result<Interp
     }
 }
 
-fn interpret_operation_parts(left: &Operation, right: &Operation) -> (Result<InterpreterResult, InterpreterError>, Result<InterpreterResult, InterpreterError>) {
+fn interpret_operation_parts(
+    left: &Operation,
+    right: &Operation,
+) -> (
+    Result<InterpreterResult, InterpreterError>,
+    Result<InterpreterResult, InterpreterError>,
+) {
     let left = match left {
-        Operation::Operation(left_nested, operator_nested, right_nested) => solve_operation(left_nested, operator_nested, right_nested),
+        Operation::Operation(left_nested, operator_nested, right_nested) => {
+            solve_operation(left_nested, operator_nested, right_nested)
+        }
         Operation::Unary(unary) => solve_unary(unary),
     };
     let right = match right {
-        Operation::Operation(left_nested, operator_nested, right_nested) => solve_operation(left_nested, operator_nested, right_nested),
+        Operation::Operation(left_nested, operator_nested, right_nested) => {
+            solve_operation(left_nested, operator_nested, right_nested)
+        }
         Operation::Unary(unary) => solve_unary(unary),
     };
     (left, right)
@@ -266,38 +358,39 @@ fn interpret_operation_parts(left: &Operation, right: &Operation) -> (Result<Int
 
 fn solve_unary(unary: &Unary) -> Result<InterpreterResult, InterpreterError> {
     match unary {
-        Unary::Bang(unary_nested) => {
-            match solve_unary(unary_nested) {
-                Ok(unary_nested_result) => match unary_nested_result {
-                    InterpreterResult::Bang(bang_result) => Ok(*bang_result),
-                    InterpreterResult::Num(num_result) => Ok(InterpreterResult::Bang(Box::new(InterpreterResult::Num(num_result)))),
-                    InterpreterResult::Str(str_result) => Ok(InterpreterResult::Bang(Box::new(InterpreterResult::Str(str_result)))),
-                    InterpreterResult::Bool(bool_result) => 
-                        if bool_result {
-                            Ok(InterpreterResult::Bool(false))
-                        } else {
-                            Ok(InterpreterResult::Bool(true))
-                        },
-                    _ => Err(InterpreterError::InvalidOperationValues),
-                },
-                Err(error) => Err(error),
-            }
+        Unary::Bang(unary_nested) => match solve_unary(unary_nested) {
+            Ok(unary_nested_result) => match unary_nested_result {
+                InterpreterResult::Bang(bang_result) => Ok(*bang_result),
+                InterpreterResult::Num(num_result) => Ok(InterpreterResult::Bang(Box::new(
+                    InterpreterResult::Num(num_result),
+                ))),
+                InterpreterResult::Str(str_result) => Ok(InterpreterResult::Bang(Box::new(
+                    InterpreterResult::Str(str_result),
+                ))),
+                InterpreterResult::Bool(bool_result) => {
+                    if bool_result {
+                        Ok(InterpreterResult::Bool(false))
+                    } else {
+                        Ok(InterpreterResult::Bool(true))
+                    }
+                }
+                _ => Err(InterpreterError::InvalidOperationValues),
+            },
+            Err(error) => Err(error),
         },
-        Unary::Minus(unary_nested) => {
-            match solve_unary(unary_nested) {
-                Ok(unary_nested_result) => match unary_nested_result {
-                    InterpreterResult::Num(num_result) => Ok(InterpreterResult::Num(-num_result)),
-                    _ => Err(InterpreterError::InvalidOperationValues),
-                },
-                Err(error) => Err(error),
-            }
-        }
+        Unary::Minus(unary_nested) => match solve_unary(unary_nested) {
+            Ok(unary_nested_result) => match unary_nested_result {
+                InterpreterResult::Num(num_result) => Ok(InterpreterResult::Num(-num_result)),
+                _ => Err(InterpreterError::InvalidOperationValues),
+            },
+            Err(error) => Err(error),
+        },
         Unary::Primary(primary) => solve_primary(primary),
     }
 }
 
 fn solve_primary(primary: &Primary) -> Result<InterpreterResult, InterpreterError> {
-    match primary{
+    match primary {
         Primary::Number(number) => Ok(InterpreterResult::Num(*number)),
         Primary::Str(str) => Ok(InterpreterResult::Str(str.to_string())),
         Primary::True => Ok(InterpreterResult::Bool(true)),
