@@ -117,9 +117,8 @@ pub fn init_map(width: u32, height: u32) {
                     map.player.position.y = y as f32;
                     map.player.previous_position.y = y as f32;
                     is_player_placed = true;
-                } else {
-                    line.push(Tile::Ground);
                 }
+                line.push(Tile::Ground);
             }
         }
         map.tiles.push(line);
