@@ -185,6 +185,7 @@ dependencies = [
  "lazy_static",
  "ollama-rs",
  "raylib",
+ "tokio",
 ]
 
 [[package]]
