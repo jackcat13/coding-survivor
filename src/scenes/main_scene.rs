@@ -18,8 +18,8 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
     d.clear_background(Color::GRAY);
 
     process_player_position();
-    editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
     map_rendering(&mut d, x_game_anchor, width, height);
+    editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
 }
 
 fn process_player_position() {
@@ -113,12 +113,20 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, heigh
     };
     let mut d = d.begin_mode2D(camera);
     let (mut x, mut y) = (x_game_anchor, 0);
-    let (range_x, range_y) = get_map_rendering_bounds(player_x, player_y);
+    let (range_x, range_y) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
     for line in map.tiles[range_y.clone()].iter() {
         for tile in line[range_x.clone()].iter() {
             let color = match tile {
                 crate::game_state::Tile::Ground => Color::LIGHTGRAY,
                 crate::game_state::Tile::Wall => Color::GRAY,
+                crate::game_state::Tile::Water => Color::BLUE,
+                crate::game_state::Tile::Lava => Color::RED, 
+                crate::game_state::Tile::Bronze => Color::BROWN,
+                crate::game_state::Tile::Silver => Color::SILVER,
+                crate::game_state::Tile::Gold => Color::GOLD,
+                crate::game_state::Tile::Mytril => Color::LIGHTSKYBLUE,
+                crate::game_state::Tile::Demonite => Color::DARKVIOLET,
+                crate::game_state::Tile::Glitch => Color::BLANK,
             };
             d.draw_rectangle_v(
                 Vector2 {
@@ -159,7 +167,7 @@ fn get_map_rendering_bounds(
     } else {
         player_x - MAP_MAX_RENDER_DISTANCE
     };
-    let max_x = if player_x + MAP_MAX_RENDER_DISTANCE > (GAME_WIDTH as f32 - 1.0) {
+    let max_x = if player_x + MAP_MAX_RENDER_DISTANCE > GAME_WIDTH as f32 - 1.0 {
         GAME_WIDTH as f32 - 1.0
     } else {
         player_x + MAP_MAX_RENDER_DISTANCE
@@ -169,7 +177,7 @@ fn get_map_rendering_bounds(
     } else {
         player_y - MAP_MAX_RENDER_DISTANCE
     };
-    let max_y = if player_y + MAP_MAX_RENDER_DISTANCE > (GAME_HEIGHT as f32 - 1.0) {
+    let max_y = if player_y + MAP_MAX_RENDER_DISTANCE > GAME_HEIGHT as f32 - 1.0 {
         GAME_HEIGHT as f32 - 1.0
     } else {
         player_y + MAP_MAX_RENDER_DISTANCE

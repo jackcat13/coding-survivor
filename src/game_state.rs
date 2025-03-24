@@ -1,6 +1,10 @@
-use std::sync::Mutex;
+use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::*};
+
+use std::{sync::Mutex, vec};
 
 use raylib::ffi::Vector2;
+
+use crate::{GAME_HEIGHT, GAME_WIDTH};
 
 pub static EDITOR_STATE: Mutex<EditorState> = Mutex::new(EditorState {
     buffer: vec![],
@@ -19,7 +23,7 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
     player: Player {
         velocity: 0.25,
         position: Vector2 { x: 0.0, y: 0.0 },
-        previous_position: Vector2 { x: 0.0, y: 0.0 }
+        previous_position: Vector2 { x: 0.0, y: 0.0 },
     },
 });
 
@@ -86,8 +90,8 @@ impl MapState {
             return Err(MoveError::NoTiles);
         };
         match next_tile {
-            Tile::Wall => return Err(MoveError::HitWall),
-            _ => (),
+            Tile::Ground | Tile::Water => (),
+            _ => return Err(MoveError::HitWall),
         };
         self.player.position = Vector2 {
             x: next_x as f32,
@@ -97,30 +101,65 @@ impl MapState {
     }
 }
 
+#[derive(Debug)]
 pub enum Tile {
-    Ground,
-    Wall,
+    Ground = 0,
+    Wall = 1,
+    Water = 2,
+    Lava = 3,
+    Bronze = 4,
+    Silver = 5,
+    Gold = 6,
+    Mytril = 7,
+    Demonite = 8,
+    Glitch = 9,
 }
 
 pub fn init_map(width: u32, height: u32) {
     let mut map = MAP_STATE.lock().expect("Failed to get map state");
-    let mut is_player_placed = false;
-    for y in 0..height {
-        let mut line = vec![];
-        for x in 0..width {
-            if x % 2 == 0 && y % 2 == 0 {
-                line.push(Tile::Wall);
-            } else {
-                if !is_player_placed {
-                    map.player.position.x = x as f32;
-                    map.player.previous_position.x = x as f32;
-                    map.player.position.y = y as f32;
-                    map.player.previous_position.y = y as f32;
-                    is_player_placed = true;
-                }
-                line.push(Tile::Ground);
+    map.tiles = generate_map(width as usize, height as usize);
+    for (y, line) in map.tiles.iter().enumerate() {
+        for (x, tile) in line.iter().enumerate() {
+            if let Tile::Ground = tile {
+                map.player.position.x = x as f32;
+                map.player.position.y = y as f32;
+                map.player.previous_position.x = x as f32;
+                map.player.previous_position.y = y as f32;
+                println!("{} %%% {}", map.player.previous_position.x, map.player.previous_position.y);
+                println!("{} %%% {}", map.player.position.x, map.player.position.y);
+                return;
             }
         }
-        map.tiles.push(line);
+    }
+}
+
+pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
+    println!("GENERATING MAP...");
+    let mut tile_map: Vec<Vec<Tile>> = vec![];
+    let hasher = PermutationTable::new(0);
+    let map: NoiseMap = PlaneMapBuilder::new_fn(|point| perlin_2d(point.into(), &hasher))
+        .set_size(width, height)
+        .set_x_bounds(-40.0, 40.0)
+        .set_y_bounds(-40.0, 40.0)
+        .build();
+    let mut x = 0;
+    let mut row = vec![];
+    for cell in map {
+        row.push(to_tile(cell));
+        x += 1;
+        if x >= width {
+            x = 0;
+            tile_map.push(row);
+            row = vec![];
+        }
+    }
+    tile_map
+}
+
+fn to_tile(cell: f64) -> Tile {
+    if cell < 0.0 {
+        Tile::Wall
+    } else {
+        Tile::Ground
     }
 }
