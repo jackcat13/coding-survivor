@@ -63,23 +63,26 @@ impl MapState {
         let mut next_y = 0;
         match direction {
             Direction::Up => {
+                if current_y == 0 { return Err(MoveError::NoTiles) }
                 next_x = current_x;
                 next_y = current_y - 1;
             }
             Direction::Down => {
+                if current_y == GAME_HEIGHT as usize - 1 { return Err(MoveError::NoTiles) }
                 next_x = current_x;
                 next_y = current_y + 1;
             }
             Direction::Left => {
+                if current_x == 0 { return Err(MoveError::NoTiles) }
                 next_x = current_x - 1;
                 next_y = current_y;
             }
             Direction::Right => {
+                if current_x == GAME_WIDTH as usize -1 { return Err(MoveError::NoTiles) }
                 next_x = current_x + 1;
                 next_y = current_y;
             }
         };
-        println!("{}", next_x);
         let next_tile = if let Some(line) = self.tiles.get(next_y) {
             if let Some(next_tile) = line.get(next_x) {
                 next_tile
@@ -125,8 +128,6 @@ pub fn init_map(width: u32, height: u32) {
                 map.player.position.y = y as f32;
                 map.player.previous_position.x = x as f32;
                 map.player.previous_position.y = y as f32;
-                println!("{} %%% {}", map.player.previous_position.x, map.player.previous_position.y);
-                println!("{} %%% {}", map.player.position.x, map.player.position.y);
                 return;
             }
         }
