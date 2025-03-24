@@ -23,6 +23,9 @@ static CURRENT_SCENE: Mutex<SceneFnPointer> = Mutex::new(main_scene);
 fn main() {
     init_map(GAME_WIDTH, GAME_HEIGHT);
 
+    #[cfg(feature = "dev-only")]
+    use_dev_pannel();
+
     let (mut rl, thread) = raylib::init()
         .size(0, 0)
         .title(GAME_NAME)
@@ -40,4 +43,10 @@ fn main() {
     }
 }
 
+#[cfg(feature = "dev-only")]
+fn use_dev_pannel() {
+    use scenes::dev_pannel_scene::dev_pannel_scene;
 
+    let mut current_scene = CURRENT_SCENE.lock().expect("Failed to get current scene");
+    *current_scene = dev_pannel_scene;
+}

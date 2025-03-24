@@ -6,3 +6,9 @@ edition = "2021"
 [dependencies]
 lazy_static = "1.5.0"
 raylib = "5.0.2"
+
+[dev-dependencies]
+ollama-rs = "0.2.6"
+
+[features]
+dev-only = []
