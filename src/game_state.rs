@@ -1,11 +1,9 @@
 use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::*};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use std::{
     ops::{Deref, DerefMut},
-    sync::{Arc, Mutex},
+    sync::Mutex,
     time::SystemTime,
-    vec,
 };
 
 use rand::prelude::Rng;
@@ -32,11 +30,13 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
         position: Vector2 { x: 0.0, y: 0.0 },
         previous_position: Vector2 { x: 0.0, y: 0.0 },
     },
+    zoom: 1.0,
 });
 
 pub struct MapState {
     pub tiles: Vec<Vec<Tile>>,
     pub player: Player,
+    pub zoom: f32,
 }
 
 pub struct Player {

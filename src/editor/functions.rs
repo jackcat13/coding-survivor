@@ -33,6 +33,16 @@ lazy_static! {
             arguments: vec![],
             instructions: InstructionsDef::NativeFunction(move_right)
         },
+        FunctionDef {
+            name: "zoomOut".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::NativeFunction(zoom_out)
+        },
+        FunctionDef {
+            name: "zoomIn".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::NativeFunction(zoom_in)
+        },
     ]);
 }
 
@@ -67,6 +77,22 @@ fn move_left(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, Fu
 
 fn move_right(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
     move_player(arguments, Direction::Right)
+}
+
+fn zoom_out(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    let mut map_state = MAP_STATE.lock().expect("Failed to load map state");
+    if map_state.zoom > 0.1 {
+        map_state.zoom -= 0.1;
+    }
+    Ok(InterpreterResult::Nil)
+}
+
+fn zoom_in(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    let mut map_state = MAP_STATE.lock().expect("Failed to load map state");
+    if map_state.zoom < 2.0 {
+        map_state.zoom += 0.1;
+    }
+    Ok(InterpreterResult::Nil)
 }
 
 fn move_player(
