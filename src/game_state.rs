@@ -200,8 +200,12 @@ pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
 fn to_tile(cell: f64) -> Tile {
     if cell < 0.0 {
         to_wall()
-    } else {
+    } else if cell > 0.5 && cell < 0.505 {
+        Tile::Lava
+    } else if cell < 0.8 {
         Tile::Ground
+    } else {
+        Tile::Water
     }
 }
 
