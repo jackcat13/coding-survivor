@@ -109,7 +109,7 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, heigh
             y: player_y,
         },
         rotation: f32::default(),
-        zoom: 1.0,
+        zoom: 0.2,
     };
     let mut d = d.begin_mode2D(camera);
     let (mut x, mut y) = (x_game_anchor, 0);

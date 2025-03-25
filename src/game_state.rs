@@ -1,6 +1,12 @@
 use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::*};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use std::{sync::Mutex, vec};
+use std::{
+    ops::{Deref, DerefMut},
+    sync::{Arc, Mutex},
+    time::SystemTime,
+    vec,
+};
 
 use rand::prelude::Rng;
 use raylib::ffi::Vector2;
@@ -64,22 +70,30 @@ impl MapState {
         let mut next_y = 0;
         match direction {
             Direction::Up => {
-                if current_y == 0 { return Err(MoveError::NoTiles) }
+                if current_y == 0 {
+                    return Err(MoveError::NoTiles);
+                }
                 next_x = current_x;
                 next_y = current_y - 1;
             }
             Direction::Down => {
-                if current_y == GAME_HEIGHT as usize - 1 { return Err(MoveError::NoTiles) }
+                if current_y == GAME_HEIGHT as usize - 1 {
+                    return Err(MoveError::NoTiles);
+                }
                 next_x = current_x;
                 next_y = current_y + 1;
             }
             Direction::Left => {
-                if current_x == 0 { return Err(MoveError::NoTiles) }
+                if current_x == 0 {
+                    return Err(MoveError::NoTiles);
+                }
                 next_x = current_x - 1;
                 next_y = current_y;
             }
             Direction::Right => {
-                if current_x == GAME_WIDTH as usize -1 { return Err(MoveError::NoTiles) }
+                if current_x == GAME_WIDTH as usize - 1 {
+                    return Err(MoveError::NoTiles);
+                }
                 next_x = current_x + 1;
                 next_y = current_y;
             }
@@ -105,7 +119,7 @@ impl MapState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Tile {
     Ground = 0,
     Wall = 1,
@@ -117,6 +131,20 @@ pub enum Tile {
     Mytril = 7,
     Demonite = 8,
     Glitch = 9,
+}
+
+impl Deref for Tile {
+    type Target = Tile;
+
+    fn deref(&self) -> &Self::Target {
+        &self
+    }
+}
+
+impl DerefMut for Tile {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self
+    }
 }
 
 pub fn init_map(width: u32, height: u32) {
@@ -136,28 +164,37 @@ pub fn init_map(width: u32, height: u32) {
 }
 
 pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
+    let now = SystemTime::now();
     println!("GENERATING MAP...");
-    let mut tile_map: Vec<Vec<Tile>> = vec![];
     let mut rng = rand::rng();
-    let seed = rng.random_range(0..u32::max_value());
+    let seed = rng.random_range(0..u32::MAX);
     let hasher = PermutationTable::new(seed);
     let map: NoiseMap = PlaneMapBuilder::new_fn(|point| perlin_2d(point.into(), &hasher))
         .set_size(width, height)
-        .set_x_bounds(-40.0, 40.0)
-        .set_y_bounds(-40.0, 40.0)
+        .set_x_bounds(-50.0, 50.0)
+        .set_y_bounds(-50.0, 50.0)
         .build();
-    let mut x = 0;
-    let mut row = vec![];
-    for cell in map {
-        row.push(to_tile(cell));
-        x += 1;
-        if x >= width {
-            x = 0;
-            tile_map.push(row);
-            row = vec![];
-        }
+    let map: Vec<f64> = map.iter().copied().collect();
+    let rows: Vec<Vec<Tile>> = (0..height as i32)
+        .map(|line| {
+            let index = line as usize * width;
+            let range = index..index + width - 1;
+            let row: Vec<Tile> = map[range]
+                .iter()
+                .map(|noise_value| to_tile(*noise_value))
+                .collect();
+            row
+        })
+        .collect();
+    if let Ok(elapsed) = now.elapsed() {
+        println!(
+            "{} * {} map generated in {} ms",
+            width,
+            height,
+            elapsed.as_millis()
+        )
     }
-    tile_map
+    rows
 }
 
 fn to_tile(cell: f64) -> Tile {
