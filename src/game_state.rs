@@ -2,6 +2,7 @@ use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::
 
 use std::{sync::Mutex, vec};
 
+use rand::prelude::Rng;
 use raylib::ffi::Vector2;
 
 use crate::{GAME_HEIGHT, GAME_WIDTH};
@@ -137,7 +138,9 @@ pub fn init_map(width: u32, height: u32) {
 pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
     println!("GENERATING MAP...");
     let mut tile_map: Vec<Vec<Tile>> = vec![];
-    let hasher = PermutationTable::new(0);
+    let mut rng = rand::rng();
+    let seed = rng.random_range(0..u32::max_value());
+    let hasher = PermutationTable::new(seed);
     let map: NoiseMap = PlaneMapBuilder::new_fn(|point| perlin_2d(point.into(), &hasher))
         .set_size(width, height)
         .set_x_bounds(-40.0, 40.0)
