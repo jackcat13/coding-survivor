@@ -199,8 +199,29 @@ pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
 
 fn to_tile(cell: f64) -> Tile {
     if cell < 0.0 {
-        Tile::Wall
+        to_wall()
     } else {
         Tile::Ground
+    }
+}
+
+fn to_wall() -> Tile {
+    let mut rng = rand::rng();
+    let percentage = rng.random_range(1..100);
+    if percentage < 99 {
+        Tile::Wall
+    } else {
+        let percentage = rng.random_range(1..100);
+        if percentage < 50 {
+            Tile::Bronze
+        } else if percentage < 70 {
+            Tile::Silver
+        } else if percentage < 85 {
+            Tile::Gold
+        } else if percentage < 95 {
+            Tile::Mytril
+        } else {
+            Tile::Demonite
+        }
     }
 }
