@@ -119,7 +119,7 @@ impl MapState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Tile {
     Ground = 0,
     Wall = 1,

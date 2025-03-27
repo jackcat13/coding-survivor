@@ -1,24 +1,22 @@
+use std::collections::HashMap;
+
 use raylib::{
-    camera::Camera2D,
-    color::Color,
-    math::Vector2,
-    prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt},
-    RaylibHandle, RaylibThread,
+    camera::Camera2D, color::Color, math::Vector2, prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt}, texture::Texture2D, RaylibHandle, RaylibThread
 };
 
 use crate::{
-    game_state::{EDITOR_STATE, MAP_STATE},
-    GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE,
+    game_state::{Tile, EDITOR_STATE, MAP_STATE}, textures::load_map_texture, GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
+    let map_textures = load_map_texture(rl, &thread);
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
     let x_game_anchor: i32 = width / 3;
 
     d.clear_background(Color::GRAY);
 
     process_player_position();
-    map_rendering(&mut d, x_game_anchor, width, height);
+    map_rendering(&mut d, x_game_anchor, width, height, &map_textures);
     editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
 }
 
@@ -95,7 +93,9 @@ fn resolve_history_text_format(history_text: String) -> (String, Color) {
     (history_text, Color::WHITE)
 }
 
-fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, height: i32) {
+const TEXTURE_ERROR: &str = "Failed to resolve c_string for textures";
+
+fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, height: i32, textures: &HashMap<Tile, Texture2D>) {
     let map = MAP_STATE.lock().expect("Failed to get map state");
     let player_x = map.player.previous_position.x * TILE_SIZE as f32 + x_game_anchor as f32;
     let player_y = map.player.previous_position.y * TILE_SIZE as f32;
@@ -116,29 +116,7 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, heigh
     let (range_x, range_y) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
     for line in map.tiles[range_y.clone()].iter() {
         for tile in line[range_x.clone()].iter() {
-            let color = match tile {
-                crate::game_state::Tile::Ground => Color::LIGHTGRAY,
-                crate::game_state::Tile::Wall => Color::GRAY,
-                crate::game_state::Tile::Water => Color::BLUE,
-                crate::game_state::Tile::Lava => Color::RED, 
-                crate::game_state::Tile::Bronze => Color::BROWN,
-                crate::game_state::Tile::Silver => Color::SILVER,
-                crate::game_state::Tile::Gold => Color::GOLD,
-                crate::game_state::Tile::Mytril => Color::LIGHTSKYBLUE,
-                crate::game_state::Tile::Demonite => Color::DARKVIOLET,
-                crate::game_state::Tile::Glitch => Color::BLANK,
-            };
-            d.draw_rectangle_v(
-                Vector2 {
-                    x: x as f32,
-                    y: y as f32,
-                },
-                Vector2 {
-                    x: TILE_SIZE as f32,
-                    y: TILE_SIZE as f32,
-                },
-                color,
-            );
+            d.draw_texture(&textures[tile], x, y, Color::WHITE);
             x += 32;
         }
         x = x_game_anchor;

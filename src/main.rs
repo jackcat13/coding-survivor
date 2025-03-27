@@ -8,6 +8,7 @@ use scenes::main_scene::main_scene;
 mod editor;
 mod game_state;
 mod scenes;
+mod textures;
 
 const GAME_NAME: &str = "Coding Survivor";
 const TARGET_FPS: u32 = 60;
