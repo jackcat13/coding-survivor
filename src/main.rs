@@ -33,6 +33,7 @@ fn main() {
     let (mut rl, thread) = raylib::init()
         .size(0, 0)
         .title(GAME_NAME)
+        .resizable()
         .build();
 
     rl.set_target_fps(TARGET_FPS);
