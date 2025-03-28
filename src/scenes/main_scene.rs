@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
-    let map_textures = load_map_texture(rl, &thread);
+    let map_textures = load_map_texture(rl, thread);
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
     let x_game_anchor: i32 = width / 3;
 

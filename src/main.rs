@@ -5,6 +5,7 @@ use game_state::init_map;
 use raylib::{RaylibHandle, RaylibThread};
 use scenes::main_scene::main_scene;
 
+mod animation;
 mod editor;
 mod game_state;
 mod scenes;
