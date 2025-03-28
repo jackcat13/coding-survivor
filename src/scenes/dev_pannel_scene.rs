@@ -1,7 +1,8 @@
+use std::collections::HashMap;
+
 use ollama_rs::Ollama;
 use raylib::{
-    ffi::Rectangle, prelude::RaylibDrawHandle, rgui::RaylibDrawGui, rstr, RaylibHandle,
-    RaylibThread,
+    ffi::Rectangle, prelude::RaylibDrawHandle, rgui::RaylibDrawGui, rstr, texture::Texture2D, RaylibHandle, RaylibThread
 };
 
 use crate::{game_state::{generate_map, Tile}, GAME_HEIGHT, GAME_WIDTH};
@@ -12,7 +13,7 @@ const MAP_GENERATOR_BUTTON_Y: f32 = 50.0;
 const BUTTON_WIDTH: f32 = 200.0;
 const BUTTON_HEIGHT: f32 = 30.0;
 
-pub fn dev_pannel_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
+pub fn dev_pannel_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32, _textures: &HashMap<Tile, Texture2D>) {
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
     if d.gui_button(
         Rectangle {

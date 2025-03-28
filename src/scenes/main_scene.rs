@@ -13,13 +13,10 @@ use raylib::{
 use crate::{
     animation::Animation,
     game_state::{Tile, EDITOR_STATE, MAP_STATE},
-    textures::{load_map_texture, load_player_animation},
     GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE,
 };
 
-pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
-    let map_textures = load_map_texture(rl, thread);
-    let player_animation = load_player_animation(rl, thread);
+pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32, map_textures: &HashMap<Tile, Texture2D>, player_animation: &Animation) {
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
     let x_game_anchor: i32 = width / 3;
 
@@ -31,10 +28,11 @@ pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, heig
         x_game_anchor,
         width,
         height,
-        &map_textures,
-        &player_animation,
+        map_textures,
+        player_animation,
     );
     editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
+    d.draw_text(&format!("FPS : {}", d.get_fps()), width - 100, 0, 20, Color::WHITE);
 }
 
 fn process_player_position() {
