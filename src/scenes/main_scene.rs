@@ -1,22 +1,39 @@
 use std::collections::HashMap;
 
 use raylib::{
-    camera::Camera2D, color::Color, math::Vector2, prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt}, texture::Texture2D, RaylibHandle, RaylibThread
+    camera::Camera2D,
+    color::Color,
+    ffi::Rectangle,
+    math::Vector2,
+    prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt},
+    texture::Texture2D,
+    RaylibHandle, RaylibThread,
 };
 
 use crate::{
-    game_state::{Tile, EDITOR_STATE, MAP_STATE}, textures::load_map_texture, GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    animation::Animation,
+    game_state::{Tile, EDITOR_STATE, MAP_STATE},
+    textures::{load_map_texture, load_player_animation},
+    GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE,
 };
 
 pub fn main_scene(rl: &mut RaylibHandle, thread: &RaylibThread, width: i32, height: i32) {
     let map_textures = load_map_texture(rl, thread);
+    let player_animation = load_player_animation(rl, thread);
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
     let x_game_anchor: i32 = width / 3;
 
     d.clear_background(Color::GRAY);
 
     process_player_position();
-    map_rendering(&mut d, x_game_anchor, width, height, &map_textures);
+    map_rendering(
+        &mut d,
+        x_game_anchor,
+        width,
+        height,
+        &map_textures,
+        &player_animation,
+    );
     editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
 }
 
@@ -95,8 +112,15 @@ fn resolve_history_text_format(history_text: String) -> (String, Color) {
 
 const TEXTURE_ERROR: &str = "Failed to resolve c_string for textures";
 
-fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, height: i32, textures: &HashMap<Tile, Texture2D>) {
-    let map = MAP_STATE.lock().expect("Failed to get map state");
+fn map_rendering(
+    d: &mut RaylibDrawHandle,
+    x_game_anchor: i32,
+    width: i32,
+    height: i32,
+    textures: &HashMap<Tile, Texture2D>,
+    player_animation: &Animation,
+) {
+    let mut map = MAP_STATE.lock().expect("Failed to get map state");
     let player_x = map.player.previous_position.x * TILE_SIZE as f32 + x_game_anchor as f32;
     let player_y = map.player.previous_position.y * TILE_SIZE as f32;
     let camera = Camera2D {
@@ -122,17 +146,21 @@ fn map_rendering(d: &mut RaylibDrawHandle, x_game_anchor: i32, width: i32, heigh
         x = x_game_anchor;
         y += 32;
     }
-    d.draw_rectangle_v(
+    d.draw_texture_rec(
+        &player_animation.texture,
+        Rectangle {
+            x: player_animation.origin.x + (map.player.animation_state.current_frame * player_animation.frame_width) as f32,
+            y: player_animation.origin.y,
+            width: TILE_SIZE as f32,
+            height: TILE_SIZE as f32,
+        },
         Vector2 {
             x: player_x,
             y: player_y,
         },
-        Vector2 {
-            x: TILE_SIZE as f32,
-            y: TILE_SIZE as f32,
-        },
-        Color::GREEN,
+        Color::WHITE,
     );
+    map.player.animation_state.next_frame(player_animation.frame_number);
 }
 
 const MAP_MAX_RENDER_DISTANCE: f32 = 200.0;

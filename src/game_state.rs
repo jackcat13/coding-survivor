@@ -29,6 +29,10 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
         velocity: 0.25,
         position: Vector2 { x: 0.0, y: 0.0 },
         previous_position: Vector2 { x: 0.0, y: 0.0 },
+        animation_state: AnimationState {
+            current_frame: 0,
+            status: Status::Idle,
+        },
     },
     zoom: 1.0,
 });
@@ -43,6 +47,26 @@ pub struct Player {
     pub velocity: f32,
     pub position: Vector2,
     pub previous_position: Vector2,
+    pub animation_state: AnimationState,
+}
+
+pub struct AnimationState {
+    pub current_frame: u32,
+    pub status: Status,
+}
+    
+impl AnimationState {
+    pub(crate) fn next_frame(&mut self, frame_number: u32) {
+        if self.current_frame < frame_number {
+            self.current_frame += 1;
+        } else {
+            self.current_frame = 0;
+        }
+    }
+}
+
+pub enum Status {
+    Idle,
 }
 
 #[derive(Debug)]
