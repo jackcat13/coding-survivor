@@ -125,7 +125,7 @@ fn get_completions(current_token: &str) -> Vec<String> {
     let functions = FUNCTIONS.lock().expect("Failed to resolve functions");
     functions
         .iter()
-        .filter(|function| function.is_matching(current_token.to_string()))
+        .filter(|function| function.name.starts_with(current_token))
         .map(|function| function.to_complete_string())
         .collect()
 }

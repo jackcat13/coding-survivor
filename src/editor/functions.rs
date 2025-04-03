@@ -52,6 +52,23 @@ pub struct FunctionDef {
     pub instructions: InstructionsDef,
 }
 
+impl FunctionDef {
+    pub fn is_matching(&self, input_string: String) -> bool {
+        if self.name.starts_with(&input_string) || input_string.starts_with(&self.name) {
+            return true;
+        }
+        false
+    }
+
+    pub fn to_complete_string(&self) -> String {
+        if self.arguments.is_empty() {
+            self.name.clone() + "()"
+        } else {
+            self.name.clone() + "("
+        }
+    }
+}
+
 pub enum InstructionsDef {
     Expressions(Vec<Expression>),
     NativeFunction(fn(&Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError>),
