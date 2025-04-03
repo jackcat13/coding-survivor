@@ -36,6 +36,7 @@ fn main() {
         .resizable()
         .build();
 
+    rl.set_exit_key(None);
     rl.set_target_fps(TARGET_FPS);
 
     start_keyboard_thread();
