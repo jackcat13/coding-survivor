@@ -54,7 +54,7 @@ pub struct AnimationState {
     pub current_frame: u32,
     pub status: Status,
 }
-    
+
 impl AnimationState {
     pub(crate) fn next_frame(&mut self, frame_number: u32) {
         if self.current_frame < frame_number {
@@ -176,12 +176,14 @@ pub fn init_map(width: u32, height: u32) {
     map.tiles = generate_map(width as usize, height as usize);
     for (y, line) in map.tiles.iter().enumerate() {
         for (x, tile) in line.iter().enumerate() {
-            if let Tile::Ground = tile {
-                map.player.position.x = x as f32;
-                map.player.position.y = y as f32;
-                map.player.previous_position.x = x as f32;
-                map.player.previous_position.y = y as f32;
-                return;
+            if x >= (line.len() / 2) && y >= (map.tiles.len() / 2) {
+                if let Tile::Ground = tile {
+                    map.player.position.x = x as f32;
+                    map.player.position.y = y as f32;
+                    map.player.previous_position.x = x as f32;
+                    map.player.previous_position.y = y as f32;
+                    return;
+                }
             }
         }
     }

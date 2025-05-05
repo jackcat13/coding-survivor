@@ -160,6 +160,7 @@ fn resolve_history_text_format(history_text: String) -> (String, Color) {
 }
 
 const TEXTURE_ERROR: &str = "Failed to resolve c_string for textures";
+const BOUND_ERROR: &str = "Failed to resolve boundaries";
 
 fn map_rendering(
     d: &mut RaylibDrawHandle,
@@ -170,7 +171,7 @@ fn map_rendering(
     player_animation: &Animation,
 ) {
     let mut map = MAP_STATE.lock().expect("Failed to get map state");
-    let player_x = map.player.previous_position.x * TILE_SIZE as f32 + x_game_anchor as f32;
+    let player_x = map.player.previous_position.x * TILE_SIZE as f32;
     let player_y = map.player.previous_position.y * TILE_SIZE as f32;
     let camera = Camera2D {
         offset: Vector2 {
@@ -185,14 +186,15 @@ fn map_rendering(
         zoom: map.zoom,
     };
     let mut d = d.begin_mode2D(camera);
-    let (mut x, mut y) = (x_game_anchor, 0);
     let (range_x, range_y) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
+    let x_start = range_x.clone().next().expect(BOUND_ERROR) as i32 * 32;
+    let (mut x, mut y) = (x_start, range_y.clone().next().expect(BOUND_ERROR) as i32 * 32);
     for line in map.tiles[range_y.clone()].iter() {
         for tile in line[range_x.clone()].iter() {
             d.draw_texture(&textures[tile], x, y, Color::WHITE);
             x += 32;
         }
-        x = x_game_anchor;
+        x = x_start;
         y += 32;
     }
     d.draw_texture_rec(
