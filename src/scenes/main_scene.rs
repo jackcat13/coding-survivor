@@ -186,9 +186,9 @@ fn map_rendering(
         zoom: map.zoom,
     };
     let mut d = d.begin_mode2D(camera);
-    let (range_x, range_y) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
-    let x_start = range_x.clone().next().expect(BOUND_ERROR) as i32 * 32;
-    let (mut x, mut y) = (x_start, range_y.clone().next().expect(BOUND_ERROR) as i32 * 32);
+    let (range_x, range_y, x_start, y_start) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
+    let x_start = x_start as i32 * 32;
+    let (mut x, mut y) = (x_start, y_start as i32 * 32);
     for line in map.tiles[range_y.clone()].iter() {
         for tile in line[range_x.clone()].iter() {
             d.draw_texture(&textures[tile], x, y, Color::WHITE);
@@ -217,11 +217,11 @@ fn map_rendering(
         .next_frame(player_animation.frame_number);
 }
 
-const MAP_MAX_RENDER_DISTANCE: f32 = 200.0;
+const MAP_MAX_RENDER_DISTANCE: f32 = 50.0;
 fn get_map_rendering_bounds(
     player_x: f32,
     player_y: f32,
-) -> (std::ops::Range<usize>, std::ops::Range<usize>) {
+) -> (std::ops::Range<usize>, std::ops::Range<usize>, usize, usize) {
     let min_x = if player_x - MAP_MAX_RENDER_DISTANCE < 0.0 {
         0.0
     } else {
@@ -245,5 +245,7 @@ fn get_map_rendering_bounds(
     (
         min_x as usize..max_x as usize,
         min_y as usize..max_y as usize,
+        min_x as usize,
+        min_y as usize,
     )
 }
