@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use raylib::{
     camera::Camera2D,
     color::Color,
-    ffi::Rectangle,
+    ffi::{BlendMode, Rectangle},
     math::Vector2,
-    prelude::{RaylibDraw, RaylibDrawHandle, RaylibMode2DExt},
+    prelude::{RaylibBlendModeExt, RaylibDraw, RaylibDrawHandle, RaylibMode2DExt},
     texture::Texture2D,
     RaylibHandle, RaylibThread,
 };
@@ -28,7 +28,7 @@ pub fn main_scene(
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
     let x_game_anchor: i32 = width / 3;
 
-    d.clear_background(Color::GRAY);
+    d.clear_background(Color::BLACK);
 
     process_player_position();
     map_rendering(
@@ -73,7 +73,8 @@ const EDITOR_COLOR: Color = Color::WHITE;
 #[allow(static_mut_refs)]
 fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i32, width: i32) {
     let editor_state = EDITOR_STATE.lock().expect(GET_EDITOR_STATE_ERROR);
-    d.draw_rectangle(0, 0, x_game_anchor, height, Color::BLACK);
+    d.draw_rectangle(0, 0, x_game_anchor, height, Color::WHITE.alpha(0.05));
+    d.draw_line(x_game_anchor, 0, width, height, Color::DARKGOLDENROD);
     let input_line: String = editor_state.buffer.iter().collect();
     let input_line = "> ".to_owned() + &input_line;
     d.draw_text(
@@ -186,6 +187,11 @@ fn map_rendering(
         zoom: map.zoom,
     };
     let mut d = d.begin_mode2D(camera);
+    // Light source
+    let render_distance = TILE_SIZE as f32 * map.player.light_vision;
+    d.draw_circle(player_x as i32 + TILE_SIZE as i32 / 2, player_y as i32 + TILE_SIZE as i32 / 2, render_distance, Color::WHITE);
+    let mut d = d.begin_blend_mode(BlendMode::BLEND_MULTIPLIED);
+    // Map rendering
     let (range_x, range_y, x_start, y_start) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
     let x_start = x_start as i32 * 32;
     let (mut x, mut y) = (x_start, y_start as i32 * 32);
@@ -197,6 +203,8 @@ fn map_rendering(
         x = x_start;
         y += 32;
     }
+    // Player rendering
+    let mut d = d.begin_blend_mode(BlendMode::BLEND_ALPHA);
     d.draw_texture_rec(
         &player_animation.texture,
         Rectangle {

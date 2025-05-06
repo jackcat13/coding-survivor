@@ -33,8 +33,9 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
             current_frame: 0,
             status: Status::Idle,
         },
+        light_vision: 7.0,
     },
-    zoom: 1.0,
+    zoom: 1.4,
 });
 
 pub struct MapState {
@@ -48,6 +49,7 @@ pub struct Player {
     pub position: Vector2,
     pub previous_position: Vector2,
     pub animation_state: AnimationState,
+    pub light_vision: f32,
 }
 
 pub struct AnimationState {
