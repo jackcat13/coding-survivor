@@ -7,7 +7,7 @@ use std::{
 use rand::prelude::Rng;
 use raylib::ffi::Vector2;
 
-use crate::{item::{Item, MapItem, Pickaxe}, GAME_HEIGHT, GAME_WIDTH};
+use crate::{item::{InventoryItem, Item, MapItem, Pickaxe}, GAME_HEIGHT, GAME_WIDTH};
 
 pub static EDITOR_STATE: Mutex<EditorState> = Mutex::new(EditorState {
     buffer: vec![],
@@ -32,6 +32,7 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
             status: Status::Idle,
         },
         light_vision: 7.0,
+        inventory: vec![],
     },
     zoom: 1.4,
     items: vec![],
@@ -50,6 +51,7 @@ pub struct Player {
     pub previous_position: Vector2,
     pub animation_state: AnimationState,
     pub light_vision: f32,
+    pub inventory: Vec<InventoryItem>,
 }
 
 pub struct AnimationState {
