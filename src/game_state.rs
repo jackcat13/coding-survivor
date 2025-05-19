@@ -1,15 +1,13 @@
 use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::*};
 
 use std::{
-    ops::{Deref, DerefMut},
-    sync::Mutex,
-    time::SystemTime,
+    ops::{Deref, DerefMut}, sync::Mutex, time::SystemTime
 };
 
 use rand::prelude::Rng;
 use raylib::ffi::Vector2;
 
-use crate::{GAME_HEIGHT, GAME_WIDTH};
+use crate::{item::{Item, MapItem, Pickaxe}, GAME_HEIGHT, GAME_WIDTH};
 
 pub static EDITOR_STATE: Mutex<EditorState> = Mutex::new(EditorState {
     buffer: vec![],
@@ -36,12 +34,14 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
         light_vision: 7.0,
     },
     zoom: 1.4,
+    items: vec![],
 });
 
 pub struct MapState {
     pub tiles: Vec<Vec<Tile>>,
     pub player: Player,
     pub zoom: f32,
+    pub items: Vec<MapItem>,
 }
 
 pub struct Player {
@@ -143,6 +143,14 @@ impl MapState {
         };
         Ok(())
     }
+
+
+    pub fn spawn_item(&mut self, position: &Vector2, item: Box<dyn Item>) {
+        self.items.push(MapItem{
+            position: *position,
+            item,
+        });
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -159,11 +167,26 @@ pub enum Tile {
     Glitch = 9,
 }
 
+pub fn get_tile_string(tile: &Tile) -> String {
+    match tile {
+        Tile::Ground => "Ground".to_string(),
+        Tile::Wall => "Wall".to_string(),
+        Tile::Water => "Water".to_string(),
+        Tile::Lava => "Lava".to_string(),
+        Tile::Bronze => "Bronze".to_string(),
+        Tile::Silver => "Silver".to_string(),
+        Tile::Gold => "Gold".to_string(),
+        Tile::Mytril => "Mytril".to_string(),
+        Tile::Demonite => "Demonite".to_string(),
+        Tile::Glitch => "Glitch".to_string(),
+    }
+}
+
 impl Deref for Tile {
     type Target = Tile;
 
     fn deref(&self) -> &Self::Target {
-        &self
+        self
     }
 }
 
@@ -184,6 +207,7 @@ pub fn init_map(width: u32, height: u32) {
                     map.player.position.y = y as f32;
                     map.player.previous_position.x = x as f32;
                     map.player.previous_position.y = y as f32;
+                    map.spawn_item(&Vector2 { x: (x + 1) as f32, y: y as f32 }, Box::new(Pickaxe{}));
                     return;
                 }
             }

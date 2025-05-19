@@ -10,6 +10,7 @@ use textures::{load_map_texture, load_player_animation};
 mod animation;
 mod editor;
 mod game_state;
+mod item;
 mod scenes;
 mod textures;
 
@@ -21,7 +22,7 @@ const TILE_SIZE: u8 = 32;
 
 const GET_EDITOR_STATE_ERROR: &str = "Failed to get editor state";
 
-type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32, &HashMap<Tile, Texture2D>, &Animation);
+type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32, &HashMap<String, Texture2D>, &Animation);
 static CURRENT_SCENE: Mutex<SceneFnPointer> = Mutex::new(main_scene);
 
 fn main() {

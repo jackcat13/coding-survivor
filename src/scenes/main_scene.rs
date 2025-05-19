@@ -11,10 +11,7 @@ use raylib::{
 };
 
 use crate::{
-    animation::Animation,
-    editor::functions::FUNCTIONS,
-    game_state::{Tile, EDITOR_STATE, MAP_STATE},
-    GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE,
+    animation::Animation, editor::functions::FUNCTIONS, game_state::{get_tile_string, EDITOR_STATE, MAP_STATE}, GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(
@@ -22,7 +19,7 @@ pub fn main_scene(
     thread: &RaylibThread,
     width: i32,
     height: i32,
-    map_textures: &HashMap<Tile, Texture2D>,
+    map_textures: &HashMap<String, Texture2D>,
     player_animation: &Animation,
 ) {
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
@@ -168,7 +165,7 @@ fn map_rendering(
     x_game_anchor: i32,
     width: i32,
     height: i32,
-    textures: &HashMap<Tile, Texture2D>,
+    textures: &HashMap<String, Texture2D>,
     player_animation: &Animation,
 ) {
     let mut map = MAP_STATE.lock().expect("Failed to get map state");
@@ -193,15 +190,22 @@ fn map_rendering(
     let mut d = d.begin_blend_mode(BlendMode::BLEND_MULTIPLIED);
     // Map rendering
     let (range_x, range_y, x_start, y_start) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
-    let x_start = x_start as i32 * 32;
-    let (mut x, mut y) = (x_start, y_start as i32 * 32);
+    let x_start = x_start as i32 * TILE_SIZE as i32;
+    let (mut x, mut y) = (x_start, y_start as i32 * TILE_SIZE as i32);
     for line in map.tiles[range_y.clone()].iter() {
         for tile in line[range_x.clone()].iter() {
-            d.draw_texture(&textures[tile], x, y, Color::WHITE);
-            x += 32;
+            d.draw_texture(&textures[&get_tile_string(tile)], x, y, Color::WHITE);
+            x += TILE_SIZE as i32;
         }
         x = x_start;
-        y += 32;
+        y += TILE_SIZE as i32;
+    }
+    // Items rendering
+    let mut d = d.begin_blend_mode(BlendMode::BLEND_ADDITIVE);
+    for item in &map.items {
+        let item_x = item.position.x as i32 * TILE_SIZE as i32;
+        let item_y = item.position.y as i32 * TILE_SIZE as i32;
+        d.draw_texture(&textures[&item.item.get_name()], item_x, item_y, Color::WHITE);
     }
     // Player rendering
     let mut d = d.begin_blend_mode(BlendMode::BLEND_ALPHA);
