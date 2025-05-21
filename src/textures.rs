@@ -57,6 +57,11 @@ pub fn load_map_texture(rl: &mut RaylibHandle, thread: &RaylibThread) -> HashMap
             .expect("Failed to load demonite texture"),
     );
     textures.insert(
+        get_tile_string(&Tile::Tree),
+        rl.load_texture(thread, "assets/map/tree.png")
+            .expect("Failed to load tree texture"),
+    );
+    textures.insert(
         "Pickaxe".to_string(),
         rl.load_texture(thread, "assets/items/pickaxe.png")
             .expect("Failed to load pickaxe texture"),

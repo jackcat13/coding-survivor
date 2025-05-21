@@ -167,6 +167,7 @@ pub enum Tile {
     Mytril = 7,
     Demonite = 8,
     Glitch = 9,
+    Tree = 10,
 }
 
 pub fn get_tile_string(tile: &Tile) -> String {
@@ -181,6 +182,7 @@ pub fn get_tile_string(tile: &Tile) -> String {
         Tile::Mytril => "Mytril".to_string(),
         Tile::Demonite => "Demonite".to_string(),
         Tile::Glitch => "Glitch".to_string(),
+        Tile::Tree => "Tree".to_string(),
     }
 }
 
@@ -209,7 +211,6 @@ pub fn init_map(width: u32, height: u32) {
                     map.player.position.y = y as f32;
                     map.player.previous_position.x = x as f32;
                     map.player.previous_position.y = y as f32;
-                    map.spawn_item(&Vector2 { x: (x + 1) as f32, y: y as f32 }, Box::new(Pickaxe{}));
                     return;
                 }
             }
@@ -221,14 +222,22 @@ pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
     let now = SystemTime::now();
     println!("GENERATING MAP...");
     let mut rng = rand::rng();
-    let seed = rng.random_range(0..u32::MAX);
-    let hasher = PermutationTable::new(seed);
-    let map: NoiseMap = PlaneMapBuilder::new_fn(|point| perlin_2d(point.into(), &hasher))
+    let seed_map = rng.random_range(0..u32::MAX);
+    let hasher_map = PermutationTable::new(seed_map);
+    let map: NoiseMap = PlaneMapBuilder::new_fn(|point| perlin_2d(point.into(), &hasher_map))
+        .set_size(width, height)
+        .set_x_bounds(-50.0, 50.0)
+        .set_y_bounds(-50.0, 50.0)
+        .build();
+    let hasher_trees = PermutationTable::new(seed_map);
+    let trees: NoiseMap = PlaneMapBuilder::new_fn(|point| perlin_2d(point.into(), &hasher_trees))
         .set_size(width, height)
         .set_x_bounds(-50.0, 50.0)
         .set_y_bounds(-50.0, 50.0)
         .build();
     let map: Vec<f64> = map.iter().copied().collect();
+    let trees: Vec<f64> = trees.iter().copied().collect();
+    let mut trees_iter = trees.iter();
     let rows: Vec<Vec<Tile>> = (0..height as i32)
         .map(|line| {
             let index = line as usize * width;
@@ -236,6 +245,7 @@ pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
             let row: Vec<Tile> = map[range]
                 .iter()
                 .map(|noise_value| to_tile(*noise_value))
+                .map(|tile| may_be_tree(tile, trees_iter.next().expect("Failed to get noise from trees map")))
                 .collect();
             row
         })
@@ -249,6 +259,13 @@ pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
         )
     }
     rows
+}
+
+fn may_be_tree(tile: Tile, noise_value: &f64) -> Tile {
+    if noise_value < &-0.5 && tile == Tile::Ground {
+        return Tile::Tree
+    }
+    tile
 }
 
 fn to_tile(cell: f64) -> Tile {

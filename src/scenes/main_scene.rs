@@ -40,7 +40,7 @@ pub fn main_scene(
     d.draw_text(
         &format!("FPS : {}", d.get_fps()),
         width - 100,
-        0,
+        10,
         20,
         Color::WHITE,
     );
@@ -70,7 +70,7 @@ const EDITOR_COLOR: Color = Color::WHITE;
 #[allow(static_mut_refs)]
 fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i32, width: i32) {
     let editor_state = EDITOR_STATE.lock().expect(GET_EDITOR_STATE_ERROR);
-    d.draw_rectangle(0, 0, x_game_anchor, height, Color::WHITE.alpha(0.05));
+    d.draw_rectangle(0, 0, x_game_anchor, height, Color::BLACK);
     d.draw_line(x_game_anchor, 0, width, height, Color::DARKGOLDENROD);
     let input_line: String = editor_state.buffer.iter().collect();
     let input_line = "> ".to_owned() + &input_line;
