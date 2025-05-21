@@ -40,3 +40,16 @@ impl Item for Pickaxe {
         InventoryItem { number: 0, item: Box::new(self.clone()) }
     }
 }
+
+#[derive(Clone)]
+pub struct TreeItem {}
+
+impl Item for TreeItem {
+    fn get_name(&self) -> String {
+        "TreeItem".to_string()
+    }
+
+    fn to_inventory_item(&self) -> InventoryItem {
+        InventoryItem { number: 0, item: Box::new(self.clone()) }
+    }
+}

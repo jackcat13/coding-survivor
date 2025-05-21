@@ -66,6 +66,11 @@ pub fn load_map_texture(rl: &mut RaylibHandle, thread: &RaylibThread) -> HashMap
         rl.load_texture(thread, "assets/items/pickaxe.png")
             .expect("Failed to load pickaxe texture"),
     );
+    textures.insert(
+        "TreeItem".to_string(),
+        rl.load_texture(thread, "assets/items/treeItem.png")
+            .expect("Failed to load tree item texture"),
+    );
     textures
 }
 
@@ -73,6 +78,7 @@ pub fn load_player_animation(rl: &mut RaylibHandle, thread: &RaylibThread) -> An
     let state = MAP_STATE.lock().expect("Failed to load map state");
     let texture_path = match state.player.animation_state.status {
         crate::game_state::Status::Idle => "assets/player/playerIdle.png",
+        crate::game_state::Status::Breaking => "assets/player/playerIdle.png",
     };
     let texture = rl
         .load_texture(thread, texture_path)

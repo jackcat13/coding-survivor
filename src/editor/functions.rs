@@ -1,8 +1,8 @@
-use std::sync::Mutex;
+use std::{fmt::Arguments, sync::Mutex};
 
 use lazy_static::lazy_static;
 
-use crate::{editor::grammar::{Function, Operation, Primary, Unary}, game_state::{Direction, MoveError, MAP_STATE}, item::InventoryItem};
+use crate::{editor::grammar::{Function, Operation, Primary, Unary}, game_state::{BreakError, Direction, MoveError, MAP_STATE}};
 
 use super::{grammar::Expression, interpreter::InterpreterResult};
 
@@ -47,7 +47,27 @@ lazy_static! {
             name: "loot".to_string(),
             arguments: vec![],
             instructions: InstructionsDef::NativeFunction(loot)
-        }
+        },
+        FunctionDef {
+            name: "breakDown".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::NativeFunction(break_down)
+        },
+        FunctionDef {
+            name: "breakUp".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::NativeFunction(break_up)
+        },
+        FunctionDef {
+            name: "breakLeft".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::NativeFunction(break_left)
+        },
+        FunctionDef {
+            name: "breakRight".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::NativeFunction(break_right)
+        },
     ]);
 }
 
@@ -83,6 +103,7 @@ pub enum InstructionsDef {
 pub enum FunctionError {
     ExpectedArgumentsCount(usize),
     PlayerMoveError(MoveError),
+    BreakSomethingError(BreakError),
 }
 
 fn move_down(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
@@ -99,6 +120,53 @@ fn move_left(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, Fu
 
 fn move_right(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
     move_player(arguments, Direction::Right)
+}
+
+fn expected_empty_arguments(arguments: &Vec<InterpreterResult>) -> Result<(), FunctionError> {
+    if !arguments.is_empty() {
+        return Err(FunctionError::ExpectedArgumentsCount(0));
+    }
+    Ok(())
+}
+
+fn move_player(
+    arguments: &Vec<InterpreterResult>,
+    direction: Direction,
+) -> Result<InterpreterResult, FunctionError> {
+    expected_empty_arguments(arguments)?;
+    let mut map_state = MAP_STATE.lock().expect("Failed to get map state");
+    match map_state.may_move_player(direction) {
+        Ok(_) => Ok(InterpreterResult::Nil),
+        Err(error) => Err(FunctionError::PlayerMoveError(error)),
+    }
+}
+
+fn break_down(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    break_something(arguments, Direction::Down)
+}
+
+fn break_up(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    break_something(arguments, Direction::Up)
+}
+
+fn break_left(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    break_something(arguments, Direction::Left)
+}
+
+fn break_right(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    break_something(arguments, Direction::Right)
+}
+
+fn break_something(
+    arguments: &Vec<InterpreterResult>,
+    direction: Direction,
+) -> Result<InterpreterResult, FunctionError> {
+    expected_empty_arguments(arguments)?;
+    let mut map_state = MAP_STATE.lock().expect("Failed to get map state");
+    match map_state.may_break_something(direction) {
+        Ok(_) => Ok(InterpreterResult::Nil),
+        Err(error) => Err(FunctionError::BreakSomethingError(error)),
+    }
 }
 
 fn zoom_out(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
@@ -137,16 +205,3 @@ fn loot(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, Functio
     Ok(InterpreterResult::Nil)
 }
 
-fn move_player(
-    arguments: &Vec<InterpreterResult>,
-    direction: Direction,
-) -> Result<InterpreterResult, FunctionError> {
-    if !arguments.is_empty() {
-        return Err(FunctionError::ExpectedArgumentsCount(0));
-    }
-    let mut map_state = MAP_STATE.lock().expect("Failed to get map state");
-    match map_state.may_move_player(direction) {
-        Ok(_) => Ok(InterpreterResult::Nil),
-        Err(error) => Err(FunctionError::PlayerMoveError(error)),
-    }
-}

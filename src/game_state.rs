@@ -1,13 +1,19 @@
 use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::*};
 
 use std::{
-    ops::{Deref, DerefMut}, sync::Mutex, time::SystemTime
+    ops::{Deref, DerefMut},
+    sync::Mutex,
+    time::{Duration, SystemTime},
 };
 
 use rand::prelude::Rng;
-use raylib::ffi::Vector2;
+use raylib::{collision, ffi::Vector2};
 
-use crate::{item::{InventoryItem, Item, MapItem, Pickaxe}, GAME_HEIGHT, GAME_WIDTH};
+use crate::{
+    animation::Animation,
+    item::{InventoryItem, Item, MapItem, Pickaxe},
+    GAME_HEIGHT, GAME_WIDTH,
+};
 
 pub static EDITOR_STATE: Mutex<EditorState> = Mutex::new(EditorState {
     buffer: vec![],
@@ -27,10 +33,7 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
         velocity: 0.25,
         position: Vector2 { x: 0.0, y: 0.0 },
         previous_position: Vector2 { x: 0.0, y: 0.0 },
-        animation_state: AnimationState {
-            current_frame: 0,
-            status: Status::Idle,
-        },
+        animation_state: DEFAULT_ANIMATION,
         light_vision: 7.0,
         inventory: vec![],
     },
@@ -54,10 +57,33 @@ pub struct Player {
     pub inventory: Vec<InventoryItem>,
 }
 
+impl Player {
+    pub fn is_ready(&self) -> bool {
+        match self.animation_state.cooldown {
+            Some(cooldown) => {
+                if cooldown > 0.0 {
+                    return false;
+                }
+                return true;
+            }
+            None => true,
+        }
+    }
+}
+
 pub struct AnimationState {
     pub current_frame: u32,
     pub status: Status,
+    pub cooldown: Option<f32>,
+    pub target: Option<Vector2>,
 }
+
+pub const DEFAULT_ANIMATION: AnimationState = AnimationState {
+    current_frame: 0,
+    status: Status::Idle,
+    cooldown: None,
+    target: None,
+};
 
 impl AnimationState {
     pub(crate) fn next_frame(&mut self, frame_number: u32) {
@@ -69,14 +95,24 @@ impl AnimationState {
     }
 }
 
+#[derive(PartialEq, Eq)]
 pub enum Status {
     Idle,
+    Breaking,
 }
 
 #[derive(Debug)]
 pub enum MoveError {
     HitWall,
     NoTiles,
+    PlayerBusy,
+}
+
+#[derive(Debug)]
+pub enum BreakError {
+    Nothing,
+    Unbreakable,
+    PlayerBusy,
 }
 
 #[derive(Debug)]
@@ -89,6 +125,9 @@ pub enum Direction {
 
 impl MapState {
     pub fn may_move_player(&mut self, direction: Direction) -> Result<(), MoveError> {
+        if !self.player.is_ready() {
+            return Err(MoveError::PlayerBusy);
+        }
         let current_player_position = self.player.position;
         let (current_x, current_y) = (
             current_player_position.x as usize,
@@ -146,9 +185,51 @@ impl MapState {
         Ok(())
     }
 
+    pub fn may_break_something(&mut self, direction: Direction) -> Result<(), BreakError> {
+        let player_position = self.player.position;
+        let break_target = match direction {
+            Direction::Up => Vector2 {
+                x: player_position.x,
+                y: player_position.y - 1.0,
+            },
+            Direction::Down => Vector2 {
+                x: player_position.x,
+                y: player_position.y + 1.0,
+            },
+            Direction::Left => Vector2 {
+                x: player_position.x - 1.0,
+                y: player_position.y,
+            },
+            Direction::Right => Vector2 {
+                x: player_position.x + 1.0,
+                y: player_position.y,
+            },
+        };
+        match self.tiles.get_mut(break_target.y as usize) {
+            Some(line) => match line.get_mut(break_target.x as usize) {
+                Some(tile) => match tile {
+                    Tile::Tree => {
+                        if !self.player.is_ready() {
+                            return Err(BreakError::PlayerBusy);
+                        }
+                        self.player.animation_state = AnimationState {
+                            current_frame: 0,
+                            status: Status::Breaking,
+                            cooldown: Some(3.0),
+                            target: Some(break_target),
+                        };
+                        return Ok(());
+                    }
+                    _ => Err(BreakError::Unbreakable),
+                },
+                None => Err(BreakError::Nothing),
+            },
+            None => Err(BreakError::Nothing),
+        }
+    }
 
     pub fn spawn_item(&mut self, position: &Vector2, item: Box<dyn Item>) {
-        self.items.push(MapItem{
+        self.items.push(MapItem {
             position: *position,
             item,
         });
@@ -245,7 +326,14 @@ pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
             let row: Vec<Tile> = map[range]
                 .iter()
                 .map(|noise_value| to_tile(*noise_value))
-                .map(|tile| may_be_tree(tile, trees_iter.next().expect("Failed to get noise from trees map")))
+                .map(|tile| {
+                    may_be_tree(
+                        tile,
+                        trees_iter
+                            .next()
+                            .expect("Failed to get noise from trees map"),
+                    )
+                })
                 .collect();
             row
         })
@@ -263,7 +351,7 @@ pub fn generate_map(width: usize, height: usize) -> Vec<Vec<Tile>> {
 
 fn may_be_tree(tile: Tile, noise_value: &f64) -> Tile {
     if noise_value < &-0.5 && tile == Tile::Ground {
-        return Tile::Tree
+        return Tile::Tree;
     }
     tile
 }

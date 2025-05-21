@@ -11,7 +11,7 @@ use raylib::{
 };
 
 use crate::{
-    animation::Animation, editor::functions::FUNCTIONS, game_state::{get_tile_string, EDITOR_STATE, MAP_STATE}, GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    animation::Animation, editor::functions::FUNCTIONS, game_state::{get_tile_string, Status, Tile, DEFAULT_ANIMATION, EDITOR_STATE, MAP_STATE}, item::TreeItem, GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(
@@ -22,12 +22,14 @@ pub fn main_scene(
     map_textures: &HashMap<String, Texture2D>,
     player_animation: &Animation,
 ) {
+    let dt = rl.get_frame_time();
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
     let x_game_anchor: i32 = width / 3;
 
     d.clear_background(Color::BLACK);
 
     process_player_position();
+    process_player_breaking(dt);
     map_rendering(
         &mut d,
         x_game_anchor,
@@ -58,6 +60,31 @@ fn process_player_position() {
     } else if map.player.previous_position.y > map.player.position.y {
         map.player.previous_position.y -= map.player.velocity;
     }
+}
+
+fn process_player_breaking(dt: f32) {
+    let mut map = MAP_STATE.lock().expect("Failed to get map state");
+    if map.player.animation_state.status != Status::Breaking {
+        return;
+    }
+    if map.player.animation_state.cooldown.expect("BUG - breaking cooldown has not been set") > 0.0 {
+        map.player.animation_state.cooldown = Some(map.player.animation_state.cooldown.unwrap() - dt);
+        return;
+    }
+    let target = map
+        .player
+        .animation_state
+        .target
+        .expect("BUG - breaking target has not been set");
+    let tile = map
+        .tiles
+        .get_mut(target.y as usize)
+        .expect("BUG - invalid breaking target x has been set")
+        .get_mut(target.x as usize)
+        .expect("BUG - Invalid breaking target y has been set");
+    *tile = Tile::Ground;
+    map.spawn_item(&target, Box::new(TreeItem{}));
+    map.player.animation_state = DEFAULT_ANIMATION;
 }
 
 const EDITOR_PROMPT_Y: i32 = 10;
@@ -113,7 +140,13 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
         let mut y_completion = EDITOR_PROMPT_Y + 30;
         for completion in completions.iter() {
             d.draw_rectangle(EDITOR_TEXT_X, y_completion, width, 30, Color::DARKSLATEGRAY);
-            d.draw_text(completion, EDITOR_TEXT_X + 5, y_completion + 5, EDITOR_FONT_SIZE, EDITOR_COLOR);
+            d.draw_text(
+                completion,
+                EDITOR_TEXT_X + 5,
+                y_completion + 5,
+                EDITOR_FONT_SIZE,
+                EDITOR_COLOR,
+            );
             y_completion += 30;
         }
     }
@@ -186,10 +219,16 @@ fn map_rendering(
     let mut d = d.begin_mode2D(camera);
     // Light source
     let render_distance = TILE_SIZE as f32 * map.player.light_vision;
-    d.draw_circle(player_x as i32 + TILE_SIZE as i32 / 2, player_y as i32 + TILE_SIZE as i32 / 2, render_distance, Color::WHITE);
+    d.draw_circle(
+        player_x as i32 + TILE_SIZE as i32 / 2,
+        player_y as i32 + TILE_SIZE as i32 / 2,
+        render_distance,
+        Color::WHITE,
+    );
     let mut d = d.begin_blend_mode(BlendMode::BLEND_MULTIPLIED);
     // Map rendering
-    let (range_x, range_y, x_start, y_start) = get_map_rendering_bounds(map.player.position.x, map.player.position.y);
+    let (range_x, range_y, x_start, y_start) =
+        get_map_rendering_bounds(map.player.position.x, map.player.position.y);
     let x_start = x_start as i32 * TILE_SIZE as i32;
     let (mut x, mut y) = (x_start, y_start as i32 * TILE_SIZE as i32);
     for line in map.tiles[range_y.clone()].iter() {
@@ -205,7 +244,12 @@ fn map_rendering(
     for item in &map.items {
         let item_x = item.position.x as i32 * TILE_SIZE as i32;
         let item_y = item.position.y as i32 * TILE_SIZE as i32;
-        d.draw_texture(&textures[&item.item.get_name()], item_x, item_y, Color::WHITE);
+        d.draw_texture(
+            &textures[&item.item.get_name()],
+            item_x,
+            item_y,
+            Color::WHITE,
+        );
     }
     // Player rendering
     let mut d = d.begin_blend_mode(BlendMode::BLEND_ALPHA);
