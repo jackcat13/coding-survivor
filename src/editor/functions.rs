@@ -104,6 +104,7 @@ pub enum FunctionError {
     ExpectedArgumentsCount(usize),
     PlayerMoveError(MoveError),
     BreakSomethingError(BreakError),
+    NothingToLoot,
 }
 
 fn move_down(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
@@ -170,6 +171,7 @@ fn break_something(
 }
 
 fn zoom_out(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    expected_empty_arguments(arguments)?;
     let mut map_state = MAP_STATE.lock().expect("Failed to load map state");
     if map_state.zoom > 0.1 {
         map_state.zoom -= 0.1;
@@ -178,6 +180,7 @@ fn zoom_out(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, Fun
 }
 
 fn zoom_in(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    expected_empty_arguments(arguments)?;
     let mut map_state = MAP_STATE.lock().expect("Failed to load map state");
     if map_state.zoom < 2.0 {
         map_state.zoom += 0.1;
@@ -186,22 +189,17 @@ fn zoom_in(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, Func
 }
 
 fn loot(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    expected_empty_arguments(arguments)?;
     let mut map_state = MAP_STATE.lock().expect("Failed to load map state");
-    for index in 0..map_state.items.len() {
-        if map_state.items[index].position.x == map_state.player.position.x && map_state.items[index].position.y == map_state.player.position.y {
+    let player_position = map_state.player.position;
+    for (index, item) in map_state.items.iter_mut().enumerate() {
+        if item.position.x == player_position.x && item.position.y == player_position.y {
             let inventory_item = map_state.items[index].item.to_inventory_item();
-            if map_state.player.inventory.contains(&inventory_item) {
-                map_state.player.inventory.iter_mut().filter(|item|{
-                    **item == inventory_item
-                }).for_each(|item|{
-                    item.number += 1;
-                });
-            } else {
-                map_state.player.inventory.push(inventory_item);
-            }
+            map_state.player.add_item_in_inventory(inventory_item);
             map_state.items.remove(index);
+            return Ok(InterpreterResult::Nil)
         }
     }
-    Ok(InterpreterResult::Nil)
+    Err(FunctionError::NothingToLoot)
 }
 

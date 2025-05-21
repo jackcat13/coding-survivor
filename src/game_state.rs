@@ -3,15 +3,14 @@ use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::
 use std::{
     ops::{Deref, DerefMut},
     sync::Mutex,
-    time::{Duration, SystemTime},
+    time::SystemTime,
 };
 
 use rand::prelude::Rng;
-use raylib::{collision, ffi::Vector2};
+use raylib::ffi::Vector2;
 
 use crate::{
-    animation::Animation,
-    item::{InventoryItem, Item, MapItem, Pickaxe},
+    item::{InventoryItem, Item, MapItem},
     GAME_HEIGHT, GAME_WIDTH,
 };
 
@@ -68,6 +67,16 @@ impl Player {
             }
             None => true,
         }
+    }
+
+    pub fn add_item_in_inventory(&mut self, inventory_item: InventoryItem) {
+        for item in self.inventory.iter_mut() {
+            if item.item.get_name() == inventory_item.item.get_name() {
+                item.number += 1;
+                return;
+            }
+        }
+        self.inventory.push(inventory_item);
     }
 }
 
