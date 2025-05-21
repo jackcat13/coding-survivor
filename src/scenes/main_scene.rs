@@ -11,7 +11,7 @@ use raylib::{
 };
 
 use crate::{
-    animation::Animation, editor::functions::FUNCTIONS, game_state::{get_tile_string, Status, Tile, DEFAULT_ANIMATION, EDITOR_STATE, MAP_STATE}, item::TreeItem, GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE
+    animation::Animation, editor::functions::FUNCTIONS, game_state::{get_tile_string, Status, Tile, DEFAULT_ANIMATION, EDITOR_STATE, MAP_STATE}, item::TreeItem, textures::resolve_animation_index, GAME_HEIGHT, GAME_WIDTH, GET_EDITOR_STATE_ERROR, TILE_SIZE
 };
 
 pub fn main_scene(
@@ -20,7 +20,7 @@ pub fn main_scene(
     width: i32,
     height: i32,
     map_textures: &HashMap<String, Texture2D>,
-    player_animation: &Animation,
+    animations: &[Animation],
 ) {
     let dt = rl.get_frame_time();
     let mut d: RaylibDrawHandle<'_> = rl.begin_drawing(thread);
@@ -36,7 +36,7 @@ pub fn main_scene(
         width,
         height,
         map_textures,
-        player_animation,
+        animations,
     );
     editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
     d.draw_text(
@@ -199,7 +199,7 @@ fn map_rendering(
     width: i32,
     height: i32,
     textures: &HashMap<String, Texture2D>,
-    player_animation: &Animation,
+    animations: &[Animation],
 ) {
     let mut map = MAP_STATE.lock().expect("Failed to get map state");
     let player_x = map.player.previous_position.x * TILE_SIZE as f32;
@@ -253,12 +253,13 @@ fn map_rendering(
     }
     // Player rendering
     let mut d = d.begin_blend_mode(BlendMode::BLEND_ALPHA);
+    let animation = &animations[resolve_animation_index(map.player.animation_state.status.clone())];
     d.draw_texture_rec(
-        &player_animation.texture,
+        &animation.texture,
         Rectangle {
-            x: player_animation.origin.x
-                + (map.player.animation_state.current_frame * player_animation.frame_width) as f32,
-            y: player_animation.origin.y,
+            x: animation.origin.x
+                + (map.player.animation_state.current_frame * animation.frame_width) as f32,
+            y: animation.origin.y,
             width: TILE_SIZE as f32,
             height: TILE_SIZE as f32,
         },
@@ -270,7 +271,7 @@ fn map_rendering(
     );
     map.player
         .animation_state
-        .next_frame(player_animation.frame_number);
+        .next_frame(animation.frame_number);
 }
 
 const MAP_MAX_RENDER_DISTANCE: f32 = 50.0;

@@ -5,7 +5,7 @@ use editor::keyboard::{editor_processing, start_keyboard_thread};
 use game_state::{init_map, Tile};
 use raylib::{texture::Texture2D, RaylibHandle, RaylibThread};
 use scenes::main_scene::main_scene;
-use textures::{load_map_texture, load_player_animation};
+use textures::{load_map_texture, load_player_animations};
 
 mod animation;
 mod editor;
@@ -22,7 +22,7 @@ const TILE_SIZE: u8 = 32;
 
 const GET_EDITOR_STATE_ERROR: &str = "Failed to get editor state";
 
-type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32, &HashMap<String, Texture2D>, &Animation);
+type SceneFnPointer = fn(&mut RaylibHandle, &RaylibThread, i32, i32, &HashMap<String, Texture2D>, &[Animation]);
 static CURRENT_SCENE: Mutex<SceneFnPointer> = Mutex::new(main_scene);
 
 fn main() {
@@ -43,12 +43,12 @@ fn main() {
     start_keyboard_thread();
     editor_processing();
     let map_textures = load_map_texture(&mut rl, &thread);
-    let player_animation = load_player_animation(&mut rl, &thread);
+    let animations = load_player_animations(&mut rl, &thread);
 
     while !rl.window_should_close() {
         let current_scene = CURRENT_SCENE.lock().expect("Failed to get current scene");
         let (game_width, game_height) = (rl.get_screen_width(), rl.get_screen_height());
-        current_scene(&mut rl, &thread, game_width, game_height, &map_textures, &player_animation);
+        current_scene(&mut rl, &thread, game_width, game_height, &map_textures, &animations);
     }
 }
 

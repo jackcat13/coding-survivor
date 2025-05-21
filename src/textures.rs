@@ -2,9 +2,15 @@ use std::collections::HashMap;
 
 use raylib::{ffi::Vector2, texture::Texture2D, RaylibHandle, RaylibThread};
 
-use crate::{animation::Animation, game_state::{get_tile_string, Tile, MAP_STATE}};
+use crate::{
+    animation::Animation,
+    game_state::{get_tile_string, Status, Tile, MAP_STATE},
+};
 
-pub fn load_map_texture(rl: &mut RaylibHandle, thread: &RaylibThread) -> HashMap<String, Texture2D> {
+pub fn load_map_texture(
+    rl: &mut RaylibHandle,
+    thread: &RaylibThread,
+) -> HashMap<String, Texture2D> {
     let mut textures = HashMap::new();
     textures.insert(
         get_tile_string(&Tile::Ground),
@@ -74,22 +80,29 @@ pub fn load_map_texture(rl: &mut RaylibHandle, thread: &RaylibThread) -> HashMap
     textures
 }
 
-pub fn load_player_animation(rl: &mut RaylibHandle, thread: &RaylibThread) -> Animation {
-    let state = MAP_STATE.lock().expect("Failed to load map state");
-    let texture_path = match state.player.animation_state.status {
-        crate::game_state::Status::Idle => "assets/player/playerIdle.png",
-        crate::game_state::Status::Breaking => "assets/player/playerIdle.png",
-    };
-    let texture = rl
-        .load_texture(thread, texture_path)
-        .expect("Failed to load demonite texture");
-    Animation {
-        origin: Vector2{
-            x: 32.0,
-            y: 33.0,
-        },
-        frame_number: 6,
-        frame_width: 100,
-        texture,
+pub fn load_player_animations(rl: &mut RaylibHandle, thread: &RaylibThread) -> Vec<Animation> {
+    vec![
+        "assets/player/playerIdle.png",
+        "assets/player/playerBreaking.png",
+    ]
+    .iter()
+    .map(|animation_path| {
+        let texture = rl
+            .load_texture(thread, animation_path)
+            .expect("Failed to load animation texture");
+        Animation {
+            origin: Vector2 { x: 32.0, y: 33.0 },
+            frame_number: 6,
+            frame_width: 100,
+            texture,
+        }
+    })
+    .collect()
+}
+
+pub fn resolve_animation_index(status: Status) -> usize {
+    match status {
+        Status::Idle => 0,
+        Status::Breaking => 1,
     }
 }
