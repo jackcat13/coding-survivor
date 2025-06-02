@@ -10,7 +10,7 @@ use rand::prelude::Rng;
 use raylib::ffi::Vector2;
 
 use crate::{
-    item::{InventoryItem, Item, MapItem},
+    item::{InventoryItem, Item, MapItem, TreeItem},
     GAME_HEIGHT, GAME_WIDTH,
 };
 
@@ -38,6 +38,7 @@ pub static MAP_STATE: Mutex<MapState> = Mutex::new(MapState {
     },
     zoom: 1.4,
     items: vec![],
+    is_inventory_toggled: false,
 });
 
 pub struct MapState {
@@ -45,6 +46,7 @@ pub struct MapState {
     pub player: Player,
     pub zoom: f32,
     pub items: Vec<MapItem>,
+    pub is_inventory_toggled: bool,
 }
 
 pub struct Player {

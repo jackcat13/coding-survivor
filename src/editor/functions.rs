@@ -68,6 +68,11 @@ lazy_static! {
             arguments: vec![],
             instructions: InstructionsDef::NativeFunction(break_right)
         },
+        FunctionDef {
+            name: "inventory".to_string(),
+            arguments: vec![],
+            instructions: InstructionsDef::NativeFunction(inventory)
+        },
     ]);
 }
 
@@ -156,6 +161,12 @@ fn break_left(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, F
 
 fn break_right(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
     break_something(arguments, Direction::Right)
+}
+
+fn inventory(arguments: &Vec<InterpreterResult>) -> Result<InterpreterResult, FunctionError> {
+    let mut map_state = MAP_STATE.lock().expect("Failed to get map state");
+    map_state.is_inventory_toggled = !map_state.is_inventory_toggled;
+    Ok(InterpreterResult::Nil)
 }
 
 fn break_something(

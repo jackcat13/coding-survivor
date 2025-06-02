@@ -39,6 +39,7 @@ pub fn main_scene(
         animations,
     );
     editor_rendering(&mut d, x_game_anchor, height, x_game_anchor);
+    inventory_rendering(&mut d, x_game_anchor, width, map_textures);
     d.draw_text(
         &format!("FPS : {}", d.get_fps()),
         width - 100,
@@ -92,6 +93,7 @@ const EDITOR_HISTORY_Y: i32 = 40;
 const EDITOR_HISTORY_LINE_HEIGHT: i32 = 30;
 const EDITOR_TEXT_X: i32 = 20;
 const EDITOR_FONT_SIZE: i32 = 20;
+const INVENTORY_FONT_SIZE: i32 = 14;
 const EDITOR_COLOR: Color = Color::WHITE;
 
 #[allow(static_mut_refs)]
@@ -151,6 +153,26 @@ fn editor_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, height: i3
         }
     }
 }
+
+fn inventory_rendering(d: &mut RaylibDrawHandle<'_>, x_game_anchor: i32, width: i32, textures: &HashMap<String, Texture2D>) {
+    let map_state = MAP_STATE.lock().expect("Failed to get MAP STATE");
+    if !map_state.is_inventory_toggled { return }
+    let mut x_index = x_game_anchor + TILE_SIZE as i32;
+    let mut y_index = TILE_SIZE as i32;
+    for item in map_state.player.inventory.iter() {
+        let texture_name = &item.item.get_name();
+        d.draw_rectangle(x_index, y_index, TILE_SIZE as i32, TILE_SIZE as i32 * 2, Color::WHITE);
+        d.draw_texture(&textures[texture_name], x_index, y_index, Color::WHITE);
+        d.draw_text(&item.number.to_string(), x_index + INVENTORY_FONT_SIZE, y_index + TILE_SIZE as i32 + INVENTORY_FONT_SIZE, INVENTORY_FONT_SIZE, Color::BLACK);
+        if (x_index + TILE_SIZE as i32) < width - TILE_SIZE as i32 {
+            x_index += TILE_SIZE as i32;
+        } else {
+            x_index = x_game_anchor + TILE_SIZE as i32;
+            y_index += TILE_SIZE as i32 * 2;
+        }
+    }
+}
+
 
 fn get_completions(current_token: &str) -> Vec<String> {
     let functions = FUNCTIONS.lock().expect("Failed to resolve functions");

@@ -2,7 +2,8 @@ use std::{collections::HashMap, sync::Mutex};
 
 use animation::Animation;
 use editor::keyboard::{editor_processing, start_keyboard_thread};
-use game_state::{init_map, Tile};
+use game_state::{init_map, Tile, MAP_STATE};
+use item::{InventoryItem, Pickaxe, TreeItem};
 use raylib::{texture::Texture2D, RaylibHandle, RaylibThread};
 use scenes::main_scene::main_scene;
 use textures::{load_map_texture, load_player_animations};
